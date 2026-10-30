@@ -5,8 +5,13 @@
  */
 class ReportService
 {
-    public function __construct(private PDO $db, private array $user, private ?int $statementId = null)
+    public function __construct(private PDO $db, private array $user, private ?int $statementId = null,
+                                private ?string $from = null, private ?string $to = null)
     {
+        // Optional reporting period (YYYY-MM-DD)
+        $valid = fn(?string $d) => $d && preg_match('/^\d{4}-\d{2}-\d{2}$/', $d) ? $d : null;
+        $this->from = $valid($from);
+        $this->to = $valid($to);
     }
 
     private function run(string $sql, array $params = []): array
@@ -18,7 +23,16 @@ class ReportService
 
     private function scope(array &$params): string
     {
-        return scope_sql($this->user, $this->statementId, $params);
+        $sql = scope_sql($this->user, $this->statementId, $params);
+        if ($this->from) {
+            $sql .= ' AND t.completion_time >= ?';
+            $params[] = $this->from . ' 00:00:00';
+        }
+        if ($this->to) {
+            $sql .= ' AND t.completion_time <= ?';
+            $params[] = $this->to . ' 23:59:59';
+        }
+        return $sql;
     }
 
     public function summary(): array
@@ -88,16 +102,16 @@ class ReportService
                            GROUP BY $key ORDER BY total DESC LIMIT " . (int) $limit, $p);
     }
 
+    /** Transaction charges grouped by charge type, e.g. "Customer Transfer of Funds Charge". */
     public function charges(): array
     {
         $p = [];
         $w = $this->scope($p);
-        $m = sql_month('t.completion_time');
-        return $this->run("SELECT $m AS month, COUNT(*) AS tx_count, SUM(t.amount) AS total
+        return $this->run("SELECT t.details AS charge_type, COUNT(*) AS tx_count, SUM(t.amount) AS total
                            FROM transactions t
                            JOIN statements s ON s.statement_id = t.statement_id
                            JOIN categories c ON c.category_id = t.category_id
-                           WHERE c.name = 'Charges' $w GROUP BY $m ORDER BY month", $p);
+                           WHERE c.name = 'Charges' $w GROUP BY t.details ORDER BY total DESC", $p);
     }
 
     public function riskDistribution(): array

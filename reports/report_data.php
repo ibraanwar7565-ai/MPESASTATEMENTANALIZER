@@ -21,12 +21,12 @@ function build_report(string $type, ReportService $rs, PDO $db): array
             return [['Top 20 recipients by amount', ['Recipient', 'Transactions', 'Total (KES)', 'Highest risk score'], $rows, [1, 2, 3]]];
 
         case 'charges':
-            $rows = array_map(fn($r) => [date('F Y', strtotime($r['month'] . '-01')), $r['tx_count'], $n($r['total'])], $rs->charges());
+            $rows = array_map(fn($r) => [$r['charge_type'], $r['tx_count'], $n($r['total'])], $rs->charges());
             $total = array_sum(array_map(fn($r) => (float) str_replace(',', '', $r[2]), $rows));
             if ($rows) {
                 $rows[] = ['Total', array_sum(array_column($rows, 1)), $n($total)];
             }
-            return [['Transaction charges per month', ['Month', 'Charges', 'Amount (KES)'], $rows, [1, 2]]];
+            return [['Transaction charges per transaction type', ['Charge type', 'Number of charges', 'Amount (KES)'], $rows, [1, 2]]];
 
         case 'transactions':
             $rows = array_map(fn($t) => [

@@ -26,7 +26,10 @@ if ($sid) {
     }
 }
 
-$rs = new ReportService(db(), $user, $sid);
+$from = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['from'] ?? '') ? $_GET['from'] : null;
+$to = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['to'] ?? '') ? $_GET['to'] : null;
+$rs = new ReportService(db(), $user, $sid, $from, $to);
+$period = ($from || $to) ? 'Period: ' . ($from ? date('d M Y', strtotime($from)) : 'start') . ' to ' . ($to ? date('d M Y', strtotime($to)) : 'today') : 'All dates';
 $sections = build_report($type, $rs, db());
 $filename = 'pesaguard_' . $type . ($sid ? "_statement$sid" : '') . '_' . date('Ymd_His');
 log_activity((int) $user['user_id'], "Exported {$titles[$type]} report as " . strtoupper($format));
@@ -37,7 +40,7 @@ if ($format === 'csv') {
     $out = fopen('php://output', 'w');
     fwrite($out, "\xEF\xBB\xBF");                                         // UTF-8 BOM so Excel opens it correctly
     fputcsv($out, [APP_NAME . ' - ' . $titles[$type]], ',', '"', '\\');
-    fputcsv($out, ['Generated for ' . $user['full_name'] . ' on ' . date('d M Y H:i')], ',', '"', '\\');
+    fputcsv($out, ['Generated for ' . $user['full_name'] . ' on ' . date('d M Y H:i') . ' - ' . $period], ',', '"', '\\');
     foreach ($sections as [$heading, $headers, $rows]) {
         fputcsv($out, [], ',', '"', '\\');
         fputcsv($out, [$heading], ',', '"', '\\');
@@ -78,7 +81,7 @@ ob_start();
 <header><span class="brand"><?= e(APP_NAME) ?></span> &nbsp; <span class="tag"><?= e(APP_TAGLINE) ?></span></header>
 <footer>Generated on <?= e(date('d M Y H:i')) ?> for <?= e($user['full_name']) ?> &middot; Confidential: contains personal financial data &middot; Page <span class="pagenum"></span></footer>
 <h1><?= e($titles[$type]) ?></h1>
-<div class="meta"><?= $sid ? 'Statement #' . $sid : 'All statements' ?></div>
+<div class="meta"><?= $sid ? 'Statement #' . $sid : 'All statements' ?> &middot; <?= e($period) ?></div>
 <?php foreach ($sections as [$heading, $headers, $rows, $numeric]): ?>
     <h2><?= e($heading) ?></h2>
     <table>
