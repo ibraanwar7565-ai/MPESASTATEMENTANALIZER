@@ -1,0 +1,16 @@
+{
+    "name": "ibraanwar7565-ai/mpesa-analyzer",
+    "description": "PesaGuard - M-Pesa Statement Analyzer and Fraud Detection System",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": ">=8.1",
+        "ext-pdo": "*",
+        "ext-mbstring": "*",
+        "smalot/pdfparser": "^2.12",
+        "dompdf/dompdf": "^3.0"
+    },
+    "config": {
+        "optimize-autoloader": true
+    }
+}

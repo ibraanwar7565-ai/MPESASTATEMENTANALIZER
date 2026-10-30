@@ -14,11 +14,11 @@ Student: Abdirahim Ibrahim (BBIT/2024/36390) · Supervisor: Christine Kiboori
 | Module | What it does |
 |---|---|
 | User management | Register, log in and log out. Passwords are hashed with bcrypt. The account locks for 15 minutes after 5 failed logins. Access is role-based (User / Admin). |
-| Statement upload | Accepts a PDF with its SMS password (decrypted with qpdf, read with Smalot PdfParser) or a CSV export. Duplicate uploads are detected. The uploaded file is deleted after processing. |
+| Statement upload | Accepts a PDF with its SMS password (decrypted with qpdf, read with Smalot PdfParser) or a CSV export. Files are checked by extension, MIME type and size, and duplicates are rejected by SHA-256 file hash. The uploaded file is deleted after processing. |
 | Analysis | Sorts transactions into 10 editable categories. Dashboard shows money in/out, charges, closing balance, monthly cash flow, spending by category, top recipients and activity by hour. |
 | Fraud detection | 8 weighted rules (below) give each outgoing transaction a risk score from 0 to 100: Low < 30, Medium 30–59, High ≥ 60. |
-| Fraud alerts | Lists flagged transactions with the reason for each flag. The user can confirm fraud, dismiss a false alarm or undo a decision. |
-| Reports | Monthly summary, fraud report, top recipients, charges and full transaction list, each exportable as PDF (Dompdf) or CSV. |
+| Flagged transactions | Lists every transaction scoring 30 or more with the rules it triggered. The user clicks **Confirm** (fraud) or **Dismiss** (false alarm). |
+| Reports | Monthly spending summary, flagged transactions, top recipients, charges per transaction type and the full transaction list, for any period, each exportable as PDF (Dompdf) or CSV. |
 | Administration | Manage users, fraud rules (thresholds, weights, on/off), the blacklist and categories. Re-score all statements, view rule precision and the activity log. |
 
 ### Fraud detection rules
@@ -40,8 +40,9 @@ Transaction charges are not scored and do not count towards rule R3.
 
 PHP 8.1+ (PDO), MySQL 8 (InnoDB), HTML5, CSS3, Bootstrap 5.3, Bootstrap Icons, JavaScript and Chart.js 4,
 Smalot PdfParser 2.12, Dompdf 3.0 and qpdf 11. It is developed on **Laragon**.  
-All libraries are included in the repository (`vendor/`, `assets/vendor/`, `tools/qpdf/`), so no internet
-connection or Composer install is needed.
+The PHP libraries were installed with Composer (`composer.json`) and are included in `vendor/`, together with
+`assets/vendor/` and `tools/qpdf/`, so the system also runs without an internet connection. Running
+`composer install` is optional.
 
 ## Installation on Laragon (Windows)
 
@@ -64,18 +65,19 @@ connection or Composer install is needed.
 
 The virtual host name follows the folder name (folder `mpesa-analyzer` → `mpesa-analyzer.test`). You can
 also open it as `http://localhost/mpesa-analyzer/`. The database settings are in `config/config.php`
-(Laragon default: user `root`, empty password).
+(Laragon default: user `root`, empty password). qpdf is detected automatically from `tools/qpdf` or
+`C:\laragon\bin\qpdf`; to use another copy, set `QPDF_PATH` in `config/config.php`.
 
 ## Using the system
 
-1. **Upload a statement:** go to *Statements › Upload statement*. Choose your M-Pesa PDF and type the
-   password Safaricom sent by SMS, or choose a CSV file. To demo the system, click **Load sample PDF
+1. **Upload a statement:** open *Upload Statement*, choose your M-Pesa PDF, type the password Safaricom sent
+   by SMS and click **Upload & Analyse** (or choose a CSV file). To demo the system, click **Load sample PDF
    (password 123456)** or **Load sample CSV**.
 2. **Dashboard:** view totals, charts, alerts and top recipients. Use the drop-down to choose one statement.
 3. **Transactions:** filter by statement, category, type, risk, date or text. Change a transaction's
    category from the drop-down.
-4. **Fraud alerts:** read why each transaction was flagged. Then **Confirm fraud** or **Dismiss** it.
-5. **Reports:** preview any report and download it as PDF or CSV.
+4. **Flagged:** read the rules triggered for each transaction. Click **Confirm** if it was fraud or **Dismiss** if you recognise it.
+5. **Reports:** choose the report and the period, then click **PDF** or **CSV**.
 6. **My profile:** update your details, change your password or delete all your statement data.
 7. **Admin:** manage users, rules, the blacklist and categories. After changing rules, click **Re-score all
    statements**.
@@ -98,8 +100,9 @@ from October 2026 with these planted fraud patterns:
 ```
 php tests/run_tests.php
 ```
-This runs 33 unit and integration tests for the parser (CSV, PDF and wrapped text), the categoriser, every
-fraud rule, the import pipeline, re-scoring, reports and access control. The tests use a temporary SQLite
+This runs 36 unit and integration tests for the parser (CSV, PDF and wrapped text), the categoriser, every
+fraud rule (Appendix V test statement), MIME and duplicate checks, the import pipeline, re-scoring, reports
+and access control. Test names use the IDs from Chapter Six (UT-07 to UT-18, IT-01 to IT-03). The tests use a temporary SQLite
 database, so enable `pdo_sqlite` (Laragon › Menu › PHP › Extensions) before running them.
 
 ## Project structure

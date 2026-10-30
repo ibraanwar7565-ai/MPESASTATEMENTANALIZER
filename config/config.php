@@ -28,15 +28,20 @@ define('MEDIUM_RISK', 30);
 define('HIGH_RISK', 60);
 
 // ---------- qpdf (decrypts password-protected statements) ----------
+// Leave empty to auto-detect: the copy bundled in tools/qpdf, or qpdf placed in C:\laragon\bin\qpdf
+define('QPDF_PATH', '');
+
 function qpdf_bin(): string
 {
     $candidates = PHP_OS_FAMILY === 'Windows'
-        ? [APP_ROOT . '/tools/qpdf/bin/qpdf.exe',           // bundled with the project
+        ? [QPDF_PATH,
+           APP_ROOT . '/tools/qpdf/bin/qpdf.exe',           // bundled with the project
            'C:/laragon/bin/qpdf/bin/qpdf.exe',
+           'C:/laragon/bin/qpdf/qpdf.exe',
            'C:/Program Files/qpdf/bin/qpdf.exe']
-        : ['/usr/bin/qpdf', '/usr/local/bin/qpdf', '/opt/homebrew/bin/qpdf'];
+        : [QPDF_PATH, '/usr/bin/qpdf', '/usr/local/bin/qpdf', '/opt/homebrew/bin/qpdf'];
     foreach ($candidates as $c) {
-        if (is_file($c)) {
+        if ($c !== '' && is_file($c)) {
             return PHP_OS_FAMILY === 'Windows' ? str_replace('/', '\\', $c) : $c;
         }
     }
