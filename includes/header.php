@@ -31,9 +31,10 @@ $navItem = function (string $key, string $href, string $icon, string $label) use
         <div class="collapse navbar-collapse" id="mainNav">
             <ul class="navbar-nav me-auto">
                 <?= $navItem('dashboard', 'dashboard.php', 'speedometer2', 'Dashboard') ?>
+                <?= $navItem('upload', 'statements/upload.php', 'cloud-upload', 'Upload Statement') ?>
                 <?= $navItem('statements', 'statements/index.php', 'file-earmark-text', 'Statements') ?>
                 <?= $navItem('transactions', 'transactions.php', 'list-ul', 'Transactions') ?>
-                <?= $navItem('flagged', 'flagged.php', 'exclamation-triangle', 'Fraud Alerts') ?>
+                <?= $navItem('flagged', 'flagged.php', 'exclamation-triangle', 'Flagged') ?>
                 <?= $navItem('reports', 'reports/index.php', 'bar-chart-line', 'Reports') ?>
                 <?php if ($user['role'] === 'Admin'): ?>
                 <li class="nav-item dropdown">
@@ -46,7 +47,7 @@ $navItem = function (string $key, string $href, string $icon, string $label) use
                         <li><a class="dropdown-item" href="<?= e(url('admin/rules.php')) ?>"><i class="bi bi-sliders me-2"></i>Fraud Rules</a></li>
                         <li><a class="dropdown-item" href="<?= e(url('admin/blacklist.php')) ?>"><i class="bi bi-slash-circle me-2"></i>Blacklist</a></li>
                         <li><a class="dropdown-item" href="<?= e(url('admin/categories.php')) ?>"><i class="bi bi-tags me-2"></i>Categories</a></li>
-                        <li><a class="dropdown-item" href="<?= e(url('admin/logs.php')) ?>"><i class="bi bi-journal-text me-2"></i>Activity Log</a></li>
+                        <li><a class="dropdown-item" href="<?= e(url('admin/logs.php')) ?>"><i class="bi bi-journal-text me-2"></i>Logs</a></li>
                     </ul>
                 </li>
                 <?php endif; ?>
@@ -54,7 +55,7 @@ $navItem = function (string $key, string $href, string $icon, string $label) use
             <ul class="navbar-nav">
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-person-circle me-1"></i><?= e($user['full_name']) ?>
+                        <i class="bi bi-person-circle me-1"></i><span class="user-name"><?= e($user['full_name']) ?></span>
                         <span class="badge bg-light text-dark ms-1"><?= e($user['role']) ?></span>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">

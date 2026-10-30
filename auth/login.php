@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             log_activity($u ? (int) $u['user_id'] : null, 'Failed login: ' . $email);
             $left = MAX_ATTEMPTS - $failed - 1;
-            $error = 'Incorrect e-mail or password.' . ($left > 0 ? " $left attempt(s) left." : ' Your account is now locked for ' . LOCK_MINUTES . ' minutes.');
+            $error = 'Invalid email or password.' . ($left > 0 ? " $left attempt(s) left." : ' Your account is now locked for ' . LOCK_MINUTES . ' minutes.');
         }
     }
 }
@@ -74,7 +74,7 @@ require APP_ROOT . '/includes/header.php';
                 </div>
                 <button class="btn btn-pg w-100" type="submit"><i class="bi bi-box-arrow-in-right me-1"></i>Log in</button>
             </form>
-            <p class="text-center small mt-3 mb-0">No account yet? <a href="<?= e(url('auth/register.php')) ?>" class="text-pg fw-semibold">Create one</a></p>
+            <p class="text-center small mt-3 mb-0">No account yet? <a href="<?= e(url('auth/register.php')) ?>" class="text-pg fw-semibold">Register now</a></p>
         </div>
     </div>
 </div>

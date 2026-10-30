@@ -47,8 +47,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+$st = db()->prepare("SELECT s.*, (SELECT COUNT(*) FROM transactions t WHERE t.statement_id = s.statement_id AND t.risk_score >= " . MEDIUM_RISK . ") AS flagged
+                     FROM statements s WHERE s.user_id = ? ORDER BY s.uploaded_at DESC, s.statement_id DESC LIMIT 5");
+$st->execute([$user['user_id']]);
+$previous = $st->fetchAll();
+
 $pageTitle = 'Upload statement';
-$active = 'statements';
+$active = 'upload';
 require APP_ROOT . '/includes/header.php';
 ?>
 <h1 class="h3 page-title">Upload M-Pesa statement</h1>
@@ -71,7 +76,7 @@ require APP_ROOT . '/includes/header.php';
                         <input type="password" class="form-control" id="password" name="password" autocomplete="off" placeholder="Code sent to you by SMS">
                         <div class="form-text">The password is used once to open the PDF and is never stored.</div>
                     </div>
-                    <button class="btn btn-pg"><i class="bi bi-cloud-upload me-1"></i>Upload and analyse</button>
+                    <button class="btn btn-pg"><i class="bi bi-cloud-upload me-1"></i>Upload &amp; Analyse</button>
                 </form>
             </div>
         </div>
@@ -81,10 +86,10 @@ require APP_ROOT . '/includes/header.php';
             <div class="card-header">How to get your statement</div>
             <div class="card-body small">
                 <ol class="mb-0 ps-3">
-                    <li>Open the M-PESA App or MySafaricom App, or dial <strong>*334#</strong>.</li>
-                    <li>Choose <em>Statement</em>, then <em>Request full statement</em>, and pick the period.</li>
-                    <li>Safaricom e-mails you the PDF and sends the password by SMS.</li>
-                    <li>Upload the PDF here and enter that password.</li>
+                    <li>Dial <strong>*334#</strong>, choose <em>My Account</em>, then <em>M-PESA Statement</em> (or use the M-PESA App).</li>
+                    <li>Enter your email address. Safaricom emails the PDF statement.</li>
+                    <li>The statement password is sent to you by SMS.</li>
+                    <li>Upload the PDF here, type the password and click <em>Upload &amp; Analyse</em>.</li>
                 </ol>
             </div>
         </div>
@@ -99,6 +104,29 @@ require APP_ROOT . '/includes/header.php';
                 </form>
             </div>
         </div>
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-header d-flex justify-content-between"><span>Previous uploads</span><a class="small text-pg" href="<?= e(url('statements/index.php')) ?>">All statements</a></div>
+    <div class="table-responsive">
+        <table class="table table-sm mb-0">
+            <thead><tr><th>File</th><th>Type</th><th>Period</th><th class="text-center">Transactions</th><th class="text-center">Flagged</th><th>Uploaded</th><th>Status</th></tr></thead>
+            <tbody>
+            <?php foreach ($previous as $s): ?>
+                <tr>
+                    <td><a class="text-pg" href="<?= e(url('dashboard.php?statement=' . $s['statement_id'])) ?>"><?= e($s['file_name']) ?></a></td>
+                    <td><?= e($s['source_type']) ?></td>
+                    <td class="small text-nowrap"><?= e(date('d M Y', strtotime($s['period_start']))) ?> &ndash; <?= e(date('d M Y', strtotime($s['period_end']))) ?></td>
+                    <td class="text-center"><?= (int) $s['total_records'] ?></td>
+                    <td class="text-center"><?= $s['flagged'] ? '<span class="badge bg-danger">' . (int) $s['flagged'] . '</span>' : '0' ?></td>
+                    <td class="small text-nowrap"><?= e(date('d M Y H:i', strtotime($s['uploaded_at']))) ?></td>
+                    <td><span class="badge bg-success">Analysed</span> <span class="small text-muted">file deleted</span></td>
+                </tr>
+            <?php endforeach; ?>
+            <?php if (!$previous): ?><tr><td colspan="7" class="text-center text-muted py-3">No statements uploaded yet.</td></tr><?php endif; ?>
+            </tbody>
+        </table>
     </div>
 </div>
 <?php require APP_ROOT . '/includes/footer.php'; ?>

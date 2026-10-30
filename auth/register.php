@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $st = db()->prepare('SELECT COUNT(*) FROM users WHERE email = ?');
         $st->execute([$data['email']]);
         if ($st->fetchColumn()) {
-            $errors[] = 'An account with this e-mail address already exists.';
+            $errors[] = 'Email already registered.';
         }
     }
     if (!$errors) {

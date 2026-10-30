@@ -104,7 +104,7 @@ require APP_ROOT . '/includes/header.php';
     <div class="col-lg-8">
         <div class="card h-100">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-exclamation-triangle text-danger me-1"></i>Fraud alerts awaiting review</span>
+                <span><i class="bi bi-exclamation-triangle text-danger me-1"></i>Latest alerts awaiting review</span>
                 <a href="<?= e(url('flagged.php')) ?>" class="small text-pg">View all</a>
             </div>
             <div class="table-responsive">

@@ -38,13 +38,13 @@ foreach (['Pending', 'Confirmed', 'Dismissed', ''] as $s) {
     $counts[$s] = count($rs->flagged($s));
 }
 
-$pageTitle = 'Fraud alerts';
+$pageTitle = 'Flagged transactions';
 $active = 'flagged';
 require APP_ROOT . '/includes/header.php';
 ?>
 <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
     <div>
-        <h1 class="h3 page-title">Fraud alerts</h1>
+        <h1 class="h3 page-title">Flagged transactions</h1>
         <p class="page-sub">Outgoing transactions with a risk score of <?= MEDIUM_RISK ?> or more. Confirm the ones that were fraud and dismiss false alarms.</p>
     </div>
     <a class="btn btn-outline-secondary" href="<?= e(url('reports/export.php?type=flagged&format=pdf')) ?>"><i class="bi bi-file-earmark-pdf me-1"></i>Fraud report (PDF)</a>
@@ -99,7 +99,7 @@ require APP_ROOT . '/includes/header.php';
                         <input type="hidden" name="status_filter" value="<?= e($status) ?>">
                         <input type="hidden" name="level_filter" value="<?= e($level) ?>">
                         <?php if ($r['review_status'] !== 'Confirmed'): ?>
-                            <button name="decision" value="Confirmed" class="btn btn-sm btn-danger"><i class="bi bi-shield-x me-1"></i>Confirm fraud</button>
+                            <button name="decision" value="Confirmed" class="btn btn-sm btn-danger"><i class="bi bi-shield-x me-1"></i>Confirm</button>
                         <?php endif; ?>
                         <?php if ($r['review_status'] !== 'Dismissed'): ?>
                             <button name="decision" value="Dismissed" class="btn btn-sm btn-outline-secondary"><i class="bi bi-check2 me-1"></i>Dismiss</button>

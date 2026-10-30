@@ -54,3 +54,13 @@ body.guest { background: radial-gradient(circle at 15% 20%, #13a457 0, transpare
     .pg-navbar, .pg-footer, .no-print { display: none !important; }
     body { background: #fff; }
 }
+
+/* Keep the navigation on one line on smaller laptop screens */
+.pg-navbar .nav-link { white-space: nowrap; }
+@media (min-width: 992px) and (max-width: 1399.98px) {
+    .pg-navbar .nav-link { font-size: .9rem; padding-left: .5rem !important; padding-right: .5rem !important; }
+    .pg-navbar .navbar-nav:first-of-type .nav-link > .bi { display: none; }
+}
+@media (min-width: 992px) and (max-width: 1199.98px) {
+    .pg-navbar .user-name { display: none; }
+}
