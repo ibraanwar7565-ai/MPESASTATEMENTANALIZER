@@ -1,0 +1,11 @@
+# Uploaded / temporary statement files must never be committed
+storage/tmp/*
+!storage/tmp/.gitkeep
+!storage/tmp/.htaccess
+storage/*.sqlite
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
