@@ -35,6 +35,12 @@ class FraudEngine
         return isset($this->rules[$code]) ? (int) $this->rules[$code]['rule_id'] : null;
     }
 
+    /** Points a rule adds to the risk score (stored as flagged_transactions.score). */
+    public function weight(string $code): int
+    {
+        return (int) ($this->rules[$code]['weight'] ?? 0);
+    }
+
     public function score(array $txs): array
     {
         $txs = array_values($txs);

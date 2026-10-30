@@ -23,16 +23,26 @@ class StatementImporter
             if (filesize($tmpPath) > MAX_UPLOAD_SIZE) {
                 throw new RuntimeException('The file is larger than 10 MB.');
             }
+            // MIME type check: a .docx renamed to .pdf is rejected here
+            if (class_exists('finfo')) {
+                $mime = (string) (new finfo(FILEINFO_MIME_TYPE))->file($tmpPath);
+                $allowed = $ext === 'pdf'
+                    ? ['application/pdf', 'application/x-pdf']
+                    : ['text/plain', 'text/csv', 'application/csv', 'text/x-csv', 'application/vnd.ms-excel'];
+                if (!in_array($mime, $allowed, true)) {
+                    throw new RuntimeException('File rejected: its type (' . $mime . ') is not a valid ' . strtoupper($ext) . ' statement.');
+                }
+            }
             $head = (string) file_get_contents($tmpPath, false, null, 0, 5);
             if ($ext === 'pdf' && $head !== '%PDF-') {
-                throw new RuntimeException('The file is not a valid PDF document.');
+                throw new RuntimeException('File rejected: it is not a valid PDF document.');
             }
 
             $hash = hash_file('sha256', $tmpPath);
-            $dup = $this->db->prepare('SELECT statement_id FROM statements WHERE user_id = ? AND file_hash = ?');
-            $dup->execute([$userId, $hash]);
+            $dup = $this->db->prepare('SELECT statement_id FROM statements WHERE file_hash = ?');
+            $dup->execute([$hash]);
             if ($dup->fetchColumn()) {
-                throw new RuntimeException('You have already uploaded this statement.');
+                throw new RuntimeException('This statement has already been uploaded (duplicate detected by file hash).');
             }
 
             $parser = new StatementParser();
@@ -87,7 +97,7 @@ class StatementImporter
             if ($t['risk_score'] >= MEDIUM_RISK) {
                 $txId = (int) $this->db->lastInsertId();
                 foreach ($t['rules'] as $code) {
-                    $flag->execute([$txId, $engine->ruleId($code), $t['risk_score'], 'Pending']);
+                    $flag->execute([$txId, $engine->ruleId($code), $engine->weight($code), 'Pending']);
                 }
                 $flagged++;
             }
@@ -136,7 +146,7 @@ class StatementImporter
                         foreach ($t['rules'] as $code) {
                             $rid = $engine->ruleId($code);
                             $p = $previous[$rid] ?? null;
-                            $ins->execute([$t['transaction_id'], $rid, $t['risk_score'], $p['review_status'] ?? 'Pending',
+                            $ins->execute([$t['transaction_id'], $rid, $engine->weight($code), $p['review_status'] ?? 'Pending',
                                            $p['reviewed_by'] ?? null, $p['reviewed_at'] ?? null]);
                         }
                         $totalFlagged++;

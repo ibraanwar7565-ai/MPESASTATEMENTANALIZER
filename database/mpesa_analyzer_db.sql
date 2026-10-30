@@ -25,13 +25,12 @@ CREATE TABLE statements (
   statement_id  INT AUTO_INCREMENT PRIMARY KEY,
   user_id       INT NOT NULL,
   file_name     VARCHAR(255),
-  file_hash     CHAR(64) NOT NULL,
+  file_hash     CHAR(64) NOT NULL UNIQUE,
   source_type   ENUM('PDF','CSV') NOT NULL,
   period_start  DATE,
   period_end    DATE,
   total_records INT DEFAULT 0,
   uploaded_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uq_user_file (user_id, file_hash),
   FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 

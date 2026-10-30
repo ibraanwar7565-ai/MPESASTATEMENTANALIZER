@@ -110,7 +110,7 @@ class StatementParser
     public static function counterparty(string $details): string
     {
         // e.g. "Customer Transfer to 0712***678 - JOHN DOE", "Pay Bill to 888880 - KPLC", "Agent Till 301221"
-        return preg_match('/(?:to|from|Till)\s+([0-9*xX]{5,13})/i', $details, $m) ? strtolower($m[1]) : '';
+        return preg_match('/(?:to|from|Till)\s+([0-9*]{5,13})/i', $details, $m) ? $m[1] : '';
     }
 
     private function row(string $receipt, string $time, string $details, float $amount, float $balance): array

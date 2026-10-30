@@ -5,8 +5,8 @@ CREATE TABLE users (user_id INTEGER PRIMARY KEY AUTOINCREMENT, full_name TEXT NO
   phone TEXT, password_hash TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'User' CHECK (role IN ('User','Admin')),
   status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Active','Inactive')), created_at TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE statements (statement_id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-  file_name TEXT, file_hash TEXT NOT NULL, source_type TEXT NOT NULL, period_start TEXT, period_end TEXT, total_records INTEGER DEFAULT 0,
-  uploaded_at TEXT DEFAULT CURRENT_TIMESTAMP, UNIQUE (user_id, file_hash));
+  file_name TEXT, file_hash TEXT NOT NULL UNIQUE, source_type TEXT NOT NULL, period_start TEXT, period_end TEXT, total_records INTEGER DEFAULT 0,
+  uploaded_at TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE categories (category_id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, keyword_pattern TEXT NOT NULL);
 CREATE TABLE transactions (transaction_id INTEGER PRIMARY KEY AUTOINCREMENT, statement_id INTEGER NOT NULL REFERENCES statements(statement_id) ON DELETE CASCADE,
   category_id INTEGER REFERENCES categories(category_id) ON DELETE SET NULL, receipt_no TEXT NOT NULL, completion_time TEXT NOT NULL, details TEXT,

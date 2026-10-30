@@ -25,7 +25,7 @@ foreach ($m[0] as $insert) {
     db()->exec($insert);
 }
 
-echo "\nUT-01..05  Statement parser\n";
+echo "\nUT-07, UT-08, UT-11  Statement parsing (CSV, text and password-protected PDF)\n";
 $parser = new StatementParser();
 $csvRows = $parser->parseCsv(APP_ROOT . '/sample/sample_statement.csv');
 check('CSV: all 39 rows read', count($csvRows) === 39, (string) count($csvRows));
@@ -57,7 +57,7 @@ try {
 }
 @unlink($pdfFile);
 
-echo "\nUT-06..08  Categoriser\n";
+echo "\nFR4  Categorisation\n";
 $cat = new Categorizer(db());
 $names = db()->query('SELECT category_id, name FROM categories')->fetchAll(PDO::FETCH_KEY_PAIR);
 $cases = [
@@ -73,7 +73,7 @@ foreach ($cases as $details => $expected) {
     check("\"$details\" -> $expected", $got === $expected, $got);
 }
 
-echo "\nUT-09..16  Fraud engine (planted patterns)\n";
+echo "\nUT-13..18  Fraud rule engine (planted patterns, Appendix V)\n";
 $scored = (new FraudEngine(db()))->score($csvRows);
 $by = array_column($scored, null, 'receipt_no');
 $expected = [
@@ -92,6 +92,8 @@ foreach ($expected as $receipt => [$rules, $score, $level]) {
           $t['rules'] === $rules && $t['risk_score'] === $score && $t['risk_level'] === $level,
           implode('+', $t['rules']) . " = {$t['risk_score']} {$t['risk_level']}");
 }
+$others = array_filter($scored, fn($t) => !isset($expected[$t['receipt_no']]) && $t['risk_score'] > 0);
+check('All other transactions score 0 (no false alarms)', !$others, implode(', ', array_column($others, 'receipt_no')));
 $flagged = count(array_filter($scored, fn($t) => $t['risk_score'] >= MEDIUM_RISK));
 check('Exactly 5 transactions flagged (score >= 30)', $flagged === 5, (string) $flagged);
 check('Incoming transactions are never scored', !array_filter($scored, fn($t) => $t['direction'] === 'IN' && $t['risk_score'] > 0));
@@ -105,19 +107,33 @@ $charge = [
 $s = (new FraudEngine(db()))->score($charge);
 check('Charges do not count towards rapid transfers (R3)', !in_array('R3', $s[2]['rules'], true) && $s[3]['risk_score'] === 0);
 
-echo "\nIT-01..04  Import pipeline and database\n";
+echo "\nUT-09, UT-10, UT-12, IT-01..IT-03  Upload pipeline, database and reports\n";
 $tmp = APP_ROOT . '/storage/tmp/it_' . getmypid() . '.csv';
 copy(APP_ROOT . '/sample/sample_statement.csv', $tmp);
 $res = (new StatementImporter(db()))->import(2, $tmp, 'sample_statement.csv');
 check('Import: 39 transactions saved, 5 flagged', $res['total'] === 39 && $res['flagged'] === 5, json_encode($res));
 check('Import: uploaded file deleted after processing', !file_exists($tmp));
 check('Import: one flag stored per triggered rule (7 rows)', (int) db()->query('SELECT COUNT(*) FROM flagged_transactions')->fetchColumn() === 7);
+check('Import: each flag stores the weight of its rule', (int) db()->query('SELECT SUM(score) FROM flagged_transactions')->fetchColumn() === 30 + 15 + 25 + 40 + 35 + 25 + 20);
+$fake = APP_ROOT . '/storage/tmp/fake_' . getmypid() . '.pdf';
+$zip = class_exists('ZipArchive') ? new ZipArchive() : null;
+if ($zip && $zip->open($fake, ZipArchive::CREATE) === true) {
+    $zip->addFromString('word/document.xml', '<w:document/>');
+    $zip->close();
+    try {
+        (new StatementImporter(db()))->import(2, $fake, 'statement.pdf', '123456');
+        check('UT-09: .docx renamed to .pdf rejected by MIME type', false);
+    } catch (RuntimeException $ex) {
+        check('UT-09: .docx renamed to .pdf rejected by MIME type', str_starts_with($ex->getMessage(), 'File rejected'), $ex->getMessage());
+    }
+}
+@unlink($fake);
 copy(APP_ROOT . '/sample/sample_statement.csv', $tmp);
 try {
     (new StatementImporter(db()))->import(2, $tmp, 'sample_statement.csv');
     check('Import: duplicate statement rejected', false);
 } catch (RuntimeException $ex) {
-    check('Import: duplicate statement rejected', str_contains($ex->getMessage(), 'already uploaded'));
+    check('Import: duplicate statement rejected', str_contains($ex->getMessage(), 'already been uploaded'));
 }
 db()->exec("UPDATE fraud_rules SET weight = 50 WHERE rule_code = 'R1'");
 $r = (new StatementImporter(db()))->rescore();
