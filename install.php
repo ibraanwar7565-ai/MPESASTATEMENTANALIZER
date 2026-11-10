@@ -17,10 +17,14 @@ require_once __DIR__ . '/config/config.php';
 try {
     $pdo = new PDO('mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';charset=utf8mb4', DB_USER, DB_PASS,
                    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reinstall'])) {
+        $pdo->exec('DROP DATABASE IF EXISTS `' . DB_NAME . '`');
+    }
     $exists = $pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = " . $pdo->quote(DB_NAME) . " AND table_name = 'users'")->fetchColumn();
     if ($exists) {
-        $messages[] = ['info', 'PesaGuard is already installed. To start again, drop the database "' . DB_NAME . '" in HeidiSQL and reload this page.'];
+        $messages[] = ['info', 'PesaGuard is already installed. Use "Reinstall" below to delete all data and start again.'];
         $ok = true;
+        $installed = true;
     } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sql = file_get_contents(__DIR__ . '/database/mpesa_analyzer_db.sql');
         $sql = preg_replace('/^\s*--.*$/m', '', $sql);
@@ -60,6 +64,11 @@ try {
                 <li>User: <code>brian@example.com</code> / <code>Demo@123</code></li>
             </ul>
             <a href="auth/login.php" class="btn btn-pg w-100">Go to login</a>
+            <?php if (!empty($installed)): ?>
+            <form method="post" class="mt-2">
+                <button class="btn btn-outline-danger w-100" name="reinstall" value="1">Reinstall (deletes all data)</button>
+            </form>
+            <?php endif; ?>
         <?php else: ?>
             <p>This will create the MySQL database <code><?= e(DB_NAME) ?></code> on <code><?= e(DB_HOST) ?></code> with the tables and default data.</p>
             <form method="post">

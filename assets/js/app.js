@@ -7,6 +7,34 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    // Stop double submits (a second click used to repeat a slow action): show a spinner and lock the button
+    document.querySelectorAll('form').forEach(function (form) {
+        form.addEventListener('submit', function (ev) {
+            if (ev.defaultPrevented) { return; }
+            if (form.dataset.busy === '1') { ev.preventDefault(); return; }
+            form.dataset.busy = '1';
+            var btn = ev.submitter;
+            if (btn && btn.tagName === 'BUTTON') {
+                if (btn.name) {                      // keep the button's value in the request
+                    var h = document.createElement('input');
+                    h.type = 'hidden'; h.name = btn.name; h.value = btn.value;
+                    form.appendChild(h);
+                }
+                if (form.method.toLowerCase() === 'post') {
+                    btn.insertAdjacentHTML('afterbegin', '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>');
+                }
+                setTimeout(function () { btn.disabled = true; }, 0);
+            }
+        });
+    });
+    window.addEventListener('pageshow', function () {  // coming back with the Back button
+        document.querySelectorAll('form[data-busy]').forEach(function (f) {
+            f.dataset.busy = '';
+            f.querySelectorAll('button:disabled').forEach(function (b) { b.disabled = false; });
+            f.querySelectorAll('.spinner-border').forEach(function (s) { s.remove(); });
+        });
+    });
+
     // Upload form: show the password field only for PDF files
     var fileInput = document.getElementById('statement_file');
     var pwdGroup = document.getElementById('pdf-password-group');

@@ -12,7 +12,7 @@ use Smalot\PdfParser\Parser;
 class StatementParser
 {
     // Receipt | Completion time | Details (may wrap over lines) | Status | Paid in / Withdrawn | Balance
-    private const RECORD = '/\b([A-Z0-9]{10})\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\s+(.+?)\s+'
+    private const RECORD = '/\b([A-Z0-9]{10})\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\s+(.{1,400}?)\s+'
                          . '(Completed|Failed|Reversed|Cancelled)\s+(-?[\d,]+\.\d{2})'
                          . '(?:\s+(-?[\d,]+\.\d{2}))?(?:\s+(-?[\d,]+\.\d{2}))?/s';
 
@@ -39,6 +39,9 @@ class StatementParser
 
     public function parseText(string $text): array
     {
+        if (strlen($text) > 20 * 1024 * 1024) {
+            throw new RuntimeException('The statement is too large to analyse. Request a shorter period.');
+        }
         $text = str_replace(["\t", "\r"], [' ', ''], $text);
         preg_match_all(self::RECORD, $text, $matches, PREG_SET_ORDER);
 

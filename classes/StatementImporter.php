@@ -15,6 +15,7 @@ class StatementImporter
      */
     public function import(int $userId, string $tmpPath, string $originalName, string $password = '', bool $deleteAfter = true): array
     {
+        @set_time_limit(180);
         try {
             $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
             if (!in_array($ext, ['pdf', 'csv'], true)) {
@@ -112,6 +113,7 @@ class StatementImporter
      */
     public function rescore(?int $statementId = null): array
     {
+        @set_time_limit(300);
         $ids = $statementId ? [$statementId]
              : $this->db->query('SELECT statement_id FROM statements')->fetchAll(PDO::FETCH_COLUMN);
         $categorizer = new Categorizer($this->db);

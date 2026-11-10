@@ -4,7 +4,12 @@ $user = current_user();
 $active = $active ?? '';
 $navItem = function (string $key, string $href, string $icon, string $label) use ($active): string {
     $cls = $active === $key ? ' active' : '';
-    return '<li class="nav-item"><a class="nav-link' . $cls . '" href="' . e(url($href)) . '"><i class="bi bi-' . $icon . ' me-1"></i>' . e($label) . '</a></li>';
+    return '<li><a class="side-link' . $cls . '" href="' . e(url($href)) . '"><i class="bi bi-' . $icon . '"></i><span>' . e($label) . '</span></a></li>';
+};
+$here = basename($_SERVER['SCRIPT_NAME'] ?? '');
+$adminItem = function (string $file, string $icon, string $label) use ($active, $here): string {
+    $cls = ($active === 'admin' && $here === $file) ? ' active' : '';
+    return '<li><a class="side-link' . $cls . '" href="' . e(url('admin/' . $file)) . '"><i class="bi bi-' . $icon . '"></i><span>' . e($label) . '</span></a></li>';
 };
 ?>
 <!DOCTYPE html>
@@ -16,60 +21,60 @@ $navItem = function (string $key, string $href, string $icon, string $label) use
     <link rel="icon" href="<?= e(url('assets/img/favicon.svg')) ?>" type="image/svg+xml">
     <link rel="stylesheet" href="<?= e(url('assets/vendor/bootstrap/bootstrap.min.css')) ?>">
     <link rel="stylesheet" href="<?= e(url('assets/vendor/bootstrap-icons/bootstrap-icons.min.css')) ?>">
-    <link rel="stylesheet" href="<?= e(url('assets/css/style.css')) ?>">
+    <link rel="stylesheet" href="<?= e(url('assets/css/style.css')) ?>?v=2">
 </head>
 <body class="<?= $user ? 'app' : 'guest' ?>">
 <?php if ($user): ?>
-<nav class="navbar navbar-expand-lg navbar-dark pg-navbar sticky-top">
-    <div class="container-fluid px-lg-4">
-        <a class="navbar-brand fw-bold" href="<?= e(url('dashboard.php')) ?>">
-            <i class="bi bi-shield-check"></i> <?= e(APP_NAME) ?>
+<div class="pg-shell">
+    <aside class="pg-side offcanvas-lg offcanvas-start" tabindex="-1" id="sideNav" aria-label="Main navigation">
+        <a class="side-brand" href="<?= e(url('dashboard.php')) ?>">
+            <span class="brand-mark"><i class="bi bi-shield-check"></i></span>
+            <span><?= e(APP_NAME) ?><small>Fraud detection</small></span>
         </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="mainNav">
-            <ul class="navbar-nav me-auto">
-                <?= $navItem('dashboard', 'dashboard.php', 'speedometer2', 'Dashboard') ?>
-                <?= $navItem('upload', 'statements/upload.php', 'cloud-upload', 'Upload Statement') ?>
+        <nav class="side-scroll">
+            <div class="side-label">Menu</div>
+            <ul class="side-nav">
+                <?= $navItem('dashboard', 'dashboard.php', 'grid-1x2', 'Dashboard') ?>
+                <?= $navItem('upload', 'statements/upload.php', 'cloud-arrow-up', 'Upload Statement') ?>
                 <?= $navItem('statements', 'statements/index.php', 'file-earmark-text', 'Statements') ?>
-                <?= $navItem('transactions', 'transactions.php', 'list-ul', 'Transactions') ?>
+                <?= $navItem('transactions', 'transactions.php', 'arrow-left-right', 'Transactions') ?>
                 <?= $navItem('flagged', 'flagged.php', 'exclamation-triangle', 'Flagged') ?>
                 <?= $navItem('reports', 'reports/index.php', 'bar-chart-line', 'Reports') ?>
-                <?php if ($user['role'] === 'Admin'): ?>
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle<?= $active === 'admin' ? ' active' : '' ?>" href="#" role="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-gear me-1"></i>Admin
-                    </a>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="<?= e(url('admin/index.php')) ?>"><i class="bi bi-grid me-2"></i>Overview</a></li>
-                        <li><a class="dropdown-item" href="<?= e(url('admin/users.php')) ?>"><i class="bi bi-people me-2"></i>Users</a></li>
-                        <li><a class="dropdown-item" href="<?= e(url('admin/rules.php')) ?>"><i class="bi bi-sliders me-2"></i>Fraud Rules</a></li>
-                        <li><a class="dropdown-item" href="<?= e(url('admin/blacklist.php')) ?>"><i class="bi bi-slash-circle me-2"></i>Blacklist</a></li>
-                        <li><a class="dropdown-item" href="<?= e(url('admin/categories.php')) ?>"><i class="bi bi-tags me-2"></i>Categories</a></li>
-                        <li><a class="dropdown-item" href="<?= e(url('admin/logs.php')) ?>"><i class="bi bi-journal-text me-2"></i>Logs</a></li>
-                    </ul>
-                </li>
-                <?php endif; ?>
             </ul>
-            <ul class="navbar-nav">
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-person-circle me-1"></i><span class="user-name"><?= e($user['full_name']) ?></span>
-                        <span class="badge bg-light text-dark ms-1"><?= e($user['role']) ?></span>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="<?= e(url('profile.php')) ?>"><i class="bi bi-person me-2"></i>My Profile</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-danger" href="<?= e(url('auth/logout.php')) ?>"><i class="bi bi-box-arrow-right me-2"></i>Log out</a></li>
-                    </ul>
-                </li>
+            <?php if ($user['role'] === 'Admin'): ?>
+            <div class="side-label">Admin</div>
+            <ul class="side-nav">
+                <?= $adminItem('index.php', 'speedometer2', 'Overview') ?>
+                <?= $adminItem('users.php', 'people', 'Users') ?>
+                <?= $adminItem('rules.php', 'sliders', 'Fraud Rules') ?>
+                <?= $adminItem('blacklist.php', 'slash-circle', 'Blacklist') ?>
+                <?= $adminItem('categories.php', 'tags', 'Categories') ?>
+                <?= $adminItem('logs.php', 'journal-text', 'Logs') ?>
+                <?= $adminItem('status.php', 'activity', 'System Status') ?>
             </ul>
-        </div>
-    </div>
-</nav>
+            <?php endif; ?>
+        </nav>
+        <div class="side-foot">MKU BBIT Project &middot; <?= date('Y') ?></div>
+    </aside>
+    <div class="pg-main">
+        <header class="pg-top">
+            <button class="btn btn-light d-lg-none me-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#sideNav" aria-label="Open menu"><i class="bi bi-list"></i></button>
+            <div class="top-title"><?= e($pageTitle ?? '') ?></div>
+            <div class="dropdown ms-auto">
+                <a class="user-chip dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                    <span class="avatar"><?= e(strtoupper(mb_substr($user['full_name'], 0, 1))) ?></span>
+                    <span class="user-name"><?= e($user['full_name']) ?></span>
+                    <span class="role-tag"><?= e($user['role']) ?></span>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="<?= e(url('profile.php')) ?>"><i class="bi bi-person me-2"></i>My Profile</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-danger" href="<?= e(url('auth/logout.php')) ?>"><i class="bi bi-box-arrow-right me-2"></i>Log out</a></li>
+                </ul>
+            </div>
+        </header>
 <?php endif; ?>
-<main class="<?= $user ? 'container-fluid px-lg-4 py-4' : '' ?>">
+<main class="<?= $user ? 'pg-content' : '' ?>">
 <?php foreach (flashes() as $f): ?>
     <div class="alert alert-<?= e($f['type']) ?> alert-dismissible fade show <?= $user ? '' : 'mx-auto mt-3 guest-alert' ?>" role="alert">
         <?= e($f['message']) ?>
