@@ -50,32 +50,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $pageTitle = 'Log in';
 require APP_ROOT . '/includes/header.php';
 ?>
+<?php
+// Optional partner logo: place the official file at assets/img/mpesa-logo.png (or .svg) and it appears here.
+$mpesaLogo = '';
+foreach (['png', 'svg', 'jpg', 'webp'] as $x) {
+    if (is_file(APP_ROOT . '/assets/img/mpesa-logo.' . $x)) { $mpesaLogo = url('assets/img/mpesa-logo.' . $x); break; }
+}
+?>
 <div class="auth-wrap">
-    <div class="w-100" style="max-width:440px">
-        <div class="auth-brand">
-            <div class="display-5 mb-1"><i class="bi bi-shield-check"></i></div>
-            <h1 class="h3 mb-0"><?= e(APP_NAME) ?></h1>
-            <div class="small opacity-75"><?= e(APP_TAGLINE) ?></div>
-        </div>
-        <div class="card auth-card p-4">
-            <h2 class="h5 fw-bold mb-3">Log in to your account</h2>
-            <?php if ($error): ?>
-                <div class="alert alert-danger py-2"><?= e($error) ?></div>
-            <?php endif; ?>
-            <form method="post" novalidate>
-                <?= csrf_field() ?>
-                <div class="mb-3">
-                    <label class="form-label" for="email">E-mail address</label>
-                    <input type="email" class="form-control" id="email" name="email" value="<?= e($email) ?>" required autofocus>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label" for="password">Password</label>
-                    <input type="password" class="form-control" id="password" name="password" required>
-                </div>
-                <button class="btn btn-pg w-100" type="submit"><i class="bi bi-box-arrow-in-right me-1"></i>Log in</button>
-            </form>
-            <p class="text-center small mt-3 mb-0">No account yet? <a href="<?= e(url('auth/register.php')) ?>" class="text-pg fw-semibold">Register now</a></p>
-        </div>
+    <div class="auth-split">
+        <section class="auth-hero">
+            <div class="auth-brand text-start">
+                <div class="display-5 mx-0"><i class="bi bi-shield-check"></i></div>
+                <h1 class="h2 mb-1"><?= e(APP_NAME) ?></h1>
+                <div class="opacity-75"><?= e(APP_TAGLINE) ?></div>
+            </div>
+            <ul class="auth-points">
+                <li><i class="bi bi-file-earmark-lock"></i><span>Upload your password-protected M-PESA statement (PDF or CSV)</span></li>
+                <li><i class="bi bi-pie-chart"></i><span>See where your money goes: categories, charges and cash flow</span></li>
+                <li><i class="bi bi-exclamation-triangle"></i><span>Get alerts on suspicious transactions scored by 8 fraud rules</span></li>
+            </ul>
+            <div class="auth-partner">
+                <?php if ($mpesaLogo): ?>
+                    <img src="<?= e($mpesaLogo) ?>" alt="M-PESA">
+                <?php else: ?>
+                    <span class="partner-text">M-PESA</span>
+                <?php endif; ?>
+                <span>Built for M-PESA statements from Safaricom</span>
+            </div>
+        </section>
+        <section class="auth-form">
+            <div class="card auth-card p-4">
+                <h2 class="h5 fw-bold mb-1">Log in to your account</h2>
+                <p class="text-muted small mb-3">Analyse your M-PESA statement securely.</p>
+                <?php if ($error): ?>
+                    <div class="alert alert-danger py-2"><?= e($error) ?></div>
+                <?php endif; ?>
+                <form method="post" novalidate>
+                    <?= csrf_field() ?>
+                    <div class="mb-3">
+                        <label class="form-label" for="email">E-mail address</label>
+                        <input type="email" class="form-control" id="email" name="email" value="<?= e($email) ?>" required autofocus>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="password">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <button class="btn btn-pg w-100" type="submit"><i class="bi bi-box-arrow-in-right me-1"></i>Log in</button>
+                </form>
+                <p class="text-center small mt-3 mb-0">No account yet? <a href="<?= e(url('auth/register.php')) ?>" class="text-pg fw-semibold">Register now</a></p>
+            </div>
+        </section>
     </div>
 </div>
 <?php require APP_ROOT . '/includes/footer.php'; ?>
