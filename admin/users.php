@@ -1,5 +1,10 @@
 <?php
+/**
+ * Manage users (admin only): create, activate or deactivate, change role, reset password, delete.
+ * The hidden "action" field in each form says which of these to do.
+ */
 require_once __DIR__ . '/../config/config.php';
+// Admin only: anyone else gets "Access denied" and is sent to the dashboard.
 $admin = require_admin();
 $errors = [];
 
@@ -8,6 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     $id = (int) ($_POST['user_id'] ?? 0);
 
+    // Create a new account. Same checks as registration; the password is stored as a bcrypt hash.
     if ($action === 'create') {
         $name = trim($_POST['full_name'] ?? '');
         $email = strtolower(trim($_POST['email'] ?? ''));
@@ -31,25 +37,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect('admin/users.php');
         }
     } elseif ($id === (int) $admin['user_id']) {
+        // Safety: an admin cannot deactivate, demote or delete their own account (the system could lose its only admin).
         flash('warning', 'You cannot change or delete your own administrator account here.');
         redirect('admin/users.php');
     } elseif ($action === 'toggle_status') {
+        // Switch Active <-> Inactive. An inactive user cannot log in.
         db()->prepare("UPDATE users SET status = CASE WHEN status = 'Active' THEN 'Inactive' ELSE 'Active' END WHERE user_id = ?")->execute([$id]);
         log_activity((int) $admin['user_id'], "Changed status of user #$id");
         flash('success', 'User status changed.');
         redirect('admin/users.php');
     } elseif ($action === 'toggle_role') {
+        // Switch User <-> Admin.
         db()->prepare("UPDATE users SET role = CASE WHEN role = 'Admin' THEN 'User' ELSE 'Admin' END WHERE user_id = ?")->execute([$id]);
         log_activity((int) $admin['user_id'], "Changed role of user #$id");
         flash('success', 'User role changed.');
         redirect('admin/users.php');
     } elseif ($action === 'reset_password') {
+        // Make a random temporary password, save its hash, and show it once to the admin.
         $temp = 'Pg' . random_int(100000, 999999) . 'x';
         db()->prepare('UPDATE users SET password_hash = ? WHERE user_id = ?')->execute([password_hash($temp, PASSWORD_BCRYPT), $id]);
         log_activity((int) $admin['user_id'], "Reset password of user #$id");
         flash('info', "Temporary password: $temp. Give it to the user and ask them to change it in My Profile.");
         redirect('admin/users.php');
     } elseif ($action === 'delete') {
+        // Delete the user. Their statements, transactions and flags go with them (ON DELETE CASCADE).
         db()->prepare('UPDATE blacklist SET added_by = NULL WHERE added_by = ?')->execute([$id]);
         db()->prepare('DELETE FROM users WHERE user_id = ?')->execute([$id]);
         log_activity((int) $admin['user_id'], "Deleted user #$id and all their data");
@@ -58,6 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// The user list, with an optional search by name or e-mail.
 $search = trim($_GET['q'] ?? '');
 $st = db()->prepare("SELECT u.*, (SELECT COUNT(*) FROM statements s WHERE s.user_id = u.user_id) AS statements
                      FROM users u WHERE u.full_name LIKE ? OR u.email LIKE ? ORDER BY u.user_id");

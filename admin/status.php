@@ -1,9 +1,15 @@
 <?php
+/**
+ * System status (admin only): 21 live checks that the database, the PHP backend,
+ * the upload pipeline and the frontend files are all working and connected.
+ */
 require_once __DIR__ . '/../config/config.php';
+// Admin only: anyone else gets "Access denied" and is sent to the dashboard.
 $admin = require_admin();
 
 // Each check proves that one part of the system can talk to the next one.
 $checks = [];
+// $add records one check: its layer, its name, passed or not, and the detail to show.
 $add = function (string $group, string $name, bool $ok, string $detail) use (&$checks): void {
     $checks[] = compact('group', 'name', 'ok', 'detail');
 };

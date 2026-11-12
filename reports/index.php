@@ -1,10 +1,16 @@
 <?php
+/**
+ * Reports page: choose one of five reports, optionally a period and a statement,
+ * preview it, then download it as PDF or CSV (the download is made by export.php).
+ */
 require_once __DIR__ . '/../config/config.php';
+// Stop here unless someone is logged in.
 $user = require_login();
 
 $statements = user_statements($user);
 $sid = (int) ($_GET['statement'] ?? 0);
 $type = $_GET['type'] ?? 'summary';
+// The five reports: key => [title, description, icon].
 $types = [
     'summary'      => ['Monthly spending summary', 'Money in and out per month and spending by category.', 'calendar3'],
     'flagged'      => ['Flagged transactions (fraud report)', 'Suspicious transactions, the rules they triggered and the review status.', 'exclamation-triangle'],
@@ -13,8 +19,10 @@ $types = [
     'transactions' => ['Full transaction list', 'Every transaction with category and risk score.', 'list-ul'],
 ];
 $type = isset($types[$type]) ? $type : 'summary';
+// Optional period: only accepted in the form YYYY-MM-DD.
 $from = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['from'] ?? '') ? $_GET['from'] : '';
 $to = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['to'] ?? '') ? $_GET['to'] : '';
+// All report data comes from ReportService, limited to this user, statement and period.
 $rs = new ReportService(db(), $user, $sid ?: null, $from, $to);
 $qs = http_build_query(['statement' => $sid, 'from' => $from, 'to' => $to]);
 
@@ -58,6 +66,7 @@ require APP_ROOT . '/includes/header.php';
                 </div>
             </div>
             <div class="card-body">
+                <?php // report_body.php prints the preview tables. ?>
                 <?php require __DIR__ . '/report_body.php'; ?>
             </div>
         </div>

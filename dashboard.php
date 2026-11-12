@@ -1,13 +1,21 @@
 <?php
+/**
+ * Dashboard: the statement summary, the fraud panel, recent alerts, top recipients and four charts.
+ * All numbers come from ReportService; the charts are drawn in the browser by assets/js/dashboard.js.
+ */
 require_once __DIR__ . '/config/config.php';
+// Stop here unless someone is logged in (otherwise: go to the login page).
 $user = require_login();
 
+// The statements this user may see, for the "choose statement" drop-down.
 $statements = user_statements($user);
+// The statement chosen in the drop-down (?statement=5 in the address). If it is not this user's, it is ignored.
 $sid = (int) ($_GET['statement'] ?? 0) ?: null;
 if ($sid && !in_array($sid, array_map('intval', array_column($statements, 'statement_id')), true)) {
     $sid = null;
 }
 
+// Ask ReportService for every figure the page needs.
 $rs = new ReportService(db(), $user, $sid);
 $sum = $rs->summary();
 $monthly = $rs->monthly();
@@ -18,6 +26,7 @@ $hourly = $rs->hourly();
 $alerts = array_slice($rs->flagged('Pending'), 0, 6);
 $ruleNames = ReportService::ruleNames(db());
 
+// Settings for header.php. $useCharts makes footer.php load Chart.js.
 $pageTitle = 'Dashboard';
 $active = 'dashboard';
 $useCharts = true;
@@ -51,6 +60,7 @@ require APP_ROOT . '/includes/header.php';
     </div>
 </div>
 
+<?php // No statements yet: show a message with an upload button instead of empty charts. ?>
 <?php if (!$statements): ?>
     <div class="card p-5 text-center">
         <div class="display-4 text-pg mb-2"><i class="bi bi-file-earmark-arrow-up"></i></div>
@@ -61,6 +71,7 @@ require APP_ROOT . '/includes/header.php';
 <?php else: ?>
 
 <?php
+// Figures for the summary panel. $inPct is how wide the green (money in) part of the bar is.
 $in = (float) $sum['total_in'];
 $out = (float) $sum['total_out'];
 $net = $in - $out;
@@ -70,6 +81,7 @@ $outTx = max(array_sum($risk), 1);
 $firstName = explode(' ', trim($user['full_name']))[0];
 ?>
 <div class="row g-3 mb-3">
+    <?php // Statement summary: net movement, the money in / money out bar, and the key totals. ?>
     <div class="col-xl-8">
         <section class="hero h-100" aria-label="Statement summary">
             <p class="hero-hello">Habari, <?= e($firstName) ?>. Here is what your statement says.</p>
@@ -89,6 +101,7 @@ $firstName = explode(' ', trim($user['full_name']))[0];
             </div>
         </section>
     </div>
+    <?php // Fraud watch: alerts waiting for review, and the Low / Medium / High split of outgoing transactions. ?>
     <div class="col-xl-4">
         <section class="watch h-100 <?= (int) $sum['pending'] ? 'watch-alert' : 'watch-clear' ?>" aria-label="Fraud watch">
             <div class="watch-head">
@@ -191,6 +204,8 @@ $firstName = explode(' ', trim($user['full_name']))[0];
 </div>
 <?php endif; ?>
 <?php
+// Data for the four charts, passed to the browser as JSON in window.PG_DASH.
+// assets/js/dashboard.js reads it and draws the charts with Chart.js.
 $chartData = [
     'months'   => array_map(fn($m) => date('M Y', strtotime($m['month'] . '-01')), $monthly),
     'in'       => array_map(fn($m) => round((float) $m['money_in'], 2), $monthly),

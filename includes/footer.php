@@ -1,3 +1,12 @@
+<?php
+/**
+ * footer.php: closes every page and loads the JavaScript:
+ *  - Bootstrap: menus, pop-ups and the mobile sidebar
+ *  - Chart.js: only on pages that set $useCharts = true (the dashboard)
+ *  - app.js: small helpers used on every page
+ * $pageScript lets a page add its own script, e.g. the dashboard charts.
+ */
+?>
 </main>
 <?php if (current_user()): ?>
         <footer class="pg-footer">

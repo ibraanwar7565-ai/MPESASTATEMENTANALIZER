@@ -10,6 +10,8 @@ SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS activity_log, blacklist, flagged_transactions, fraud_rules, transactions, categories, statements, users;
 SET FOREIGN_KEY_CHECKS = 1;
 
+-- Table 1: users. One row per account. The password is stored only as a bcrypt hash.
+-- role decides access (User or Admin); an Inactive user cannot log in.
 CREATE TABLE users (
   user_id       INT AUTO_INCREMENT PRIMARY KEY,
   full_name     VARCHAR(100) NOT NULL,
@@ -21,6 +23,9 @@ CREATE TABLE users (
   created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
+-- Table 2: statements. One row per uploaded statement (the file itself is deleted).
+-- file_hash is the SHA-256 fingerprint; UNIQUE stops the same file being uploaded twice.
+-- Deleting a user deletes their statements (ON DELETE CASCADE).
 CREATE TABLE statements (
   statement_id  INT AUTO_INCREMENT PRIMARY KEY,
   user_id       INT NOT NULL,
@@ -34,12 +39,15 @@ CREATE TABLE statements (
   FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+-- Table 3: categories. keyword_pattern lists the words that select the category, separated by "|".
 CREATE TABLE categories (
   category_id     INT AUTO_INCREMENT PRIMARY KEY,
   name            VARCHAR(50) NOT NULL UNIQUE,
   keyword_pattern VARCHAR(255) NOT NULL
 ) ENGINE=InnoDB;
 
+-- Table 4: transactions. One row per transaction, with its category, risk score and risk level.
+-- The indexes make searching by date and receipt fast. Deleting a statement deletes its transactions.
 CREATE TABLE transactions (
   transaction_id  INT AUTO_INCREMENT PRIMARY KEY,
   statement_id    INT NOT NULL,
@@ -59,6 +67,8 @@ CREATE TABLE transactions (
   FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
+-- Table 5: fraud_rules. The 8 rules with their threshold, weight (points) and on/off switch.
+-- FraudEngine.php reads this table, so the admin can tune the rules without changing code.
 CREATE TABLE fraud_rules (
   rule_id    INT AUTO_INCREMENT PRIMARY KEY,
   rule_code  VARCHAR(5) NOT NULL UNIQUE,
@@ -68,6 +78,8 @@ CREATE TABLE fraud_rules (
   is_active  TINYINT(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB;
 
+-- Table 6: flagged_transactions. One row per rule a flagged transaction broke,
+-- with the user's review decision (Pending, Confirmed or Dismissed), who made it and when.
 CREATE TABLE flagged_transactions (
   flag_id        INT AUTO_INCREMENT PRIMARY KEY,
   transaction_id INT NOT NULL,
@@ -81,6 +93,7 @@ CREATE TABLE flagged_transactions (
   FOREIGN KEY (reviewed_by) REFERENCES users(user_id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
+-- Table 7: blacklist. Numbers, tills and paybills reported for fraud (used by rule R5).
 CREATE TABLE blacklist (
   blacklist_id INT AUTO_INCREMENT PRIMARY KEY,
   identifier   VARCHAR(20) NOT NULL UNIQUE,
@@ -91,6 +104,7 @@ CREATE TABLE blacklist (
   FOREIGN KEY (added_by) REFERENCES users(user_id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
+-- Table 8: activity_log. The audit trail: who did what, from which IP address, and when.
 CREATE TABLE activity_log (
   log_id     INT AUTO_INCREMENT PRIMARY KEY,
   user_id    INT NULL,

@@ -3,6 +3,7 @@
  * One-click installer: creates the mpesa_analyzer_db database, the tables and the seed data
  * from database/mpesa_analyzer_db.sql. Runs only from the local machine and only once.
  */
+// Security: the installer only works from the laptop itself (127.0.0.1), never from another computer.
 $local = in_array($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1', ['127.0.0.1', '::1'], true);
 $messages = [];
 $ok = false;
@@ -17,15 +18,18 @@ require_once __DIR__ . '/config/config.php';
 try {
     $pdo = new PDO('mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';charset=utf8mb4', DB_USER, DB_PASS,
                    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+    // "Reinstall" deletes the whole database first.
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reinstall'])) {
         $pdo->exec('DROP DATABASE IF EXISTS `' . DB_NAME . '`');
     }
+    // Already installed if the users table exists.
     $exists = $pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = " . $pdo->quote(DB_NAME) . " AND table_name = 'users'")->fetchColumn();
     if ($exists) {
         $messages[] = ['info', 'PesaGuard is already installed. Use "Reinstall" below to delete all data and start again.'];
         $ok = true;
         $installed = true;
     } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        // Run the SQL file one statement at a time: remove the "--" comment lines, then split at each ";" at a line end.
         $sql = file_get_contents(__DIR__ . '/database/mpesa_analyzer_db.sql');
         $sql = preg_replace('/^\s*--.*$/m', '', $sql);
         foreach (preg_split('/;\s*(\r?\n|$)/', $sql) as $statement) {

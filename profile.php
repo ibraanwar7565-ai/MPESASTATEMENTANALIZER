@@ -1,5 +1,10 @@
 <?php
+/**
+ * My profile: change name and phone, change password, or delete all my statement data.
+ * One handler serves three forms; the hidden "action" field says which form was sent.
+ */
 require_once __DIR__ . '/config/config.php';
+// Stop here unless someone is logged in (otherwise: go to the login page).
 $user = require_login();
 $errors = [];
 
@@ -7,6 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
     $action = $_POST['action'] ?? '';
 
+    // Form 1: account details.
     if ($action === 'details') {
         $name = trim($_POST['full_name'] ?? '');
         $phone = preg_replace('/\s+/', '', $_POST['phone'] ?? '');
@@ -23,6 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect('profile.php');
         }
     } elseif ($action === 'password') {
+        // Form 2: change password. The current password must be correct first.
         $st = db()->prepare('SELECT password_hash FROM users WHERE user_id = ?');
         $st->execute([$user['user_id']]);
         $new = (string) ($_POST['password'] ?? '');
@@ -33,6 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($new !== ($_POST['confirm_password'] ?? '')) {
             $errors[] = 'The two new passwords do not match.';
         } else {
+            // Save the new password as a bcrypt hash, and start a fresh session id.
             db()->prepare('UPDATE users SET password_hash = ? WHERE user_id = ?')->execute([password_hash($new, PASSWORD_BCRYPT), $user['user_id']]);
             session_regenerate_id(true);
             log_activity((int) $user['user_id'], 'Changed password');
@@ -40,6 +48,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect('profile.php');
         }
     } elseif ($action === 'delete_data') {
+        // Form 3: delete all my data. Deleting the statements also deletes their transactions and flags
+        // (ON DELETE CASCADE in the database). The account itself is kept.
         $st = db()->prepare('DELETE FROM statements WHERE user_id = ?');
         $st->execute([$user['user_id']]);
         log_activity((int) $user['user_id'], 'Deleted all own statement data (' . $st->rowCount() . ' statements)');

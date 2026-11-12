@@ -1,11 +1,15 @@
 <?php
-/** Downloads a report as PDF (Dompdf) or CSV. */
+/**
+ * Downloads a report as PDF (made by Dompdf) or CSV (opens in Excel).
+ * The data comes from build_report() in report_data.php: the same data as the on-screen preview.
+ */
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/report_data.php';
 
 use Dompdf\Dompdf;
 use Dompdf\Options;
 
+// Stop here unless someone is logged in.
 $user = require_login();
 $titles = [
     'summary'      => 'Monthly Spending Summary',
@@ -14,10 +18,12 @@ $titles = [
     'charges'      => 'Transaction Charges',
     'transactions' => 'Transaction List',
 ];
+// Read and check the options in the address: report type, format, statement and period.
 $type = isset($titles[$_GET['type'] ?? '']) ? $_GET['type'] : 'summary';
 $format = ($_GET['format'] ?? 'pdf') === 'csv' ? 'csv' : 'pdf';
 $sid = (int) ($_GET['statement'] ?? 0) ?: null;
 
+// A user may only export their own statements; anything else gets "Statement not found".
 if ($sid) {
     $owned = array_map('intval', array_column(user_statements($user), 'statement_id'));
     if (!in_array($sid, $owned, true)) {
@@ -30,10 +36,12 @@ $from = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['from'] ?? '') ? $_GET['from']
 $to = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['to'] ?? '') ? $_GET['to'] : null;
 $rs = new ReportService(db(), $user, $sid, $from, $to);
 $period = ($from || $to) ? 'Period: ' . ($from ? date('d M Y', strtotime($from)) : 'start') . ' to ' . ($to ? date('d M Y', strtotime($to)) : 'today') : 'All dates';
+// Build the report data once; the same data is used for CSV and PDF.
 $sections = build_report($type, $rs, db());
 $filename = 'pesaguard_' . $type . ($sid ? "_statement$sid" : '') . '_' . date('Ymd_His');
 log_activity((int) $user['user_id'], "Exported {$titles[$type]} report as " . strtoupper($format));
 
+// CSV: written straight to the browser as a file download.
 if ($format === 'csv') {
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="' . $filename . '.csv"');
@@ -55,6 +63,7 @@ if ($format === 'csv') {
 }
 
 // ---------- PDF ----------
+// PDF: first build the report as HTML (captured with ob_start), then Dompdf turns that HTML into a PDF.
 ob_start();
 ?>
 <!DOCTYPE html>
@@ -99,6 +108,7 @@ ob_start();
 $html = ob_get_clean();
 $options = new Options();
 $options->set('defaultFont', 'DejaVu Sans');
+// Security: Dompdf may not fetch anything from the internet or read files outside the project.
 $options->set('isRemoteEnabled', false);
 $options->setChroot(APP_ROOT);
 $options->set('tempDir', UPLOAD_PATH);

@@ -1,13 +1,20 @@
 <?php
+/**
+ * Blacklist (admin only): numbers, tills and paybills reported for fraud.
+ * A payment to any of them triggers rule R5.
+ */
 require_once __DIR__ . '/../config/config.php';
+// Admin only: anyone else gets "Access denied" and is sent to the dashboard.
 $admin = require_admin();
 $errors = [];
+// ?identifier=... fills in the form when the admin clicks the blacklist button on a flagged transaction.
 $form = ['identifier' => strtolower(trim($_GET['identifier'] ?? '')), 'entity_type' => 'Phone', 'reason' => ''];
 $editId = (int) ($_GET['edit'] ?? 0);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
     $action = $_POST['action'] ?? '';
+    // Remove an entry.
     if ($action === 'delete') {
         db()->prepare('DELETE FROM blacklist WHERE blacklist_id = ?')->execute([(int) $_POST['blacklist_id']]);
         log_activity((int) $admin['user_id'], 'Removed blacklist entry #' . (int) $_POST['blacklist_id']);
@@ -20,6 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'reason'      => trim($_POST['reason'] ?? ''),
     ];
     $editId = (int) ($_POST['blacklist_id'] ?? 0);
+    // The number must look as it does on statements: digits, with * or x for hidden digits, 5 to 20 characters.
     if (!preg_match('/^[0-9*x+]{5,20}$/', $form['identifier'])) {
         $errors[] = 'Enter the number as it appears on statements, e.g. 0790***066 or 888880.';
     }
@@ -29,11 +37,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$errors) {
         try {
             if ($editId) {
+                // Editing an existing entry.
                 db()->prepare('UPDATE blacklist SET identifier = ?, entity_type = ?, reason = ? WHERE blacklist_id = ?')
                     ->execute([$form['identifier'], $form['entity_type'], mb_substr($form['reason'], 0, 255), $editId]);
                 log_activity((int) $admin['user_id'], "Updated blacklist entry {$form['identifier']}");
                 flash('success', 'Blacklist entry updated.');
             } else {
+                // Adding a new entry.
                 db()->prepare('INSERT INTO blacklist (identifier, entity_type, reason, added_by, created_at) VALUES (?, ?, ?, ?, ?)')
                     ->execute([$form['identifier'], $form['entity_type'], mb_substr($form['reason'], 0, 255), $admin['user_id'], now()]);
                 log_activity((int) $admin['user_id'], "Blacklisted {$form['identifier']}");
@@ -41,6 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             redirect('admin/blacklist.php');
         } catch (PDOException $ex) {
+            // identifier is UNIQUE in the database, so adding the same number twice fails here.
             $errors[] = 'That number is already on the blacklist.';
         }
     }

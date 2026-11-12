@@ -1,6 +1,10 @@
-/* PesaGuard theme v3
+/* style.css: the whole look of PesaGuard (theme v3).
    Forest ink + leaf green, one lime spark on dark surfaces.
-   Display: Bricolage Grotesque. Text: Figtree. Both bundled, so the system works offline. */
+   Display: Bricolage Grotesque. Text: Figtree. Both bundled, so the system works offline.
+
+   Sections: fonts and colours (:root) - app shell (sidebar, top bar) - dashboard summary -
+   flagged alert cards - components (buttons, forms, cards, tables, badges) - login page - print.
+   To change a colour everywhere, change its value once in :root below. */
 @font-face { font-family: "Bricolage Grotesque"; src: url("../fonts/bricolage-grotesque-latin-wght-normal.woff2") format("woff2"); font-weight: 200 800; font-display: swap; }
 @font-face { font-family: "Figtree"; src: url("../fonts/figtree-latin-wght-normal.woff2") format("woff2"); font-weight: 300 900; font-display: swap; }
 
