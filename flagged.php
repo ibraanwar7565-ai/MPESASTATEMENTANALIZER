@@ -66,24 +66,27 @@ require APP_ROOT . '/includes/header.php';
 <div class="row g-3">
 <?php foreach ($rows as $r): ?>
     <div class="col-xl-6">
-        <div class="card h-100 border-start border-4 <?= $r['risk_level'] === 'High' ? 'border-danger' : 'border-warning' ?>">
+        <div class="card h-100 alert-card <?= $r['risk_level'] === 'High' ? 'is-high' : 'is-medium' ?>">
             <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <div>
-                        <div class="fw-semibold"><?= e($r['details']) ?></div>
-                        <div class="small text-muted">
-                            <span class="font-monospace"><?= e($r['receipt_no']) ?></span> &middot; <?= e(date('D d M Y, H:i', strtotime($r['completion_time']))) ?>
-                            <?php if ($user['role'] === 'Admin'): ?> &middot; <?= e($r['full_name']) ?><?php endif; ?>
+                <div class="d-flex gap-3 align-items-start mb-3">
+                    <div class="score-ring" style="--score: <?= (int) $r['risk_score'] ?>" title="Risk score <?= (int) $r['risk_score'] ?> out of 100">
+                        <span><strong><?= (int) $r['risk_score'] ?></strong>/100</span>
+                    </div>
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="d-flex flex-wrap justify-content-between gap-2">
+                            <div class="alert-title"><?= e($r['details']) ?></div>
+                            <div class="amount-out alert-amount text-nowrap"><?= e(money($r['amount'])) ?></div>
+                        </div>
+                        <div class="small text-muted mt-1">
+                            <?= risk_badge($r['risk_level']) ?> <span class="ms-1">score <strong><?= (int) $r['risk_score'] ?></strong>/100</span>
+                            <span class="ms-2"><?= e($r['receipt_no']) ?></span>, <?= e(date('D d M Y, H:i', strtotime($r['completion_time']))) ?>
+                            <?php if ($user['role'] === 'Admin'): ?>, <?= e($r['full_name']) ?><?php endif; ?>
                         </div>
                     </div>
-                    <div class="text-end">
-                        <div class="amount-out fs-5 text-nowrap"><?= e(money($r['amount'])) ?></div>
-                        <?= risk_badge($r['risk_level']) ?> <span class="small">score <strong><?= (int) $r['risk_score'] ?></strong>/100</span>
-                    </div>
                 </div>
-                <div class="small mb-3">
-                    <div class="text-muted mb-1">Why it was flagged:</div>
-                    <ul class="mb-0 ps-3">
+                <div class="why mb-3">
+                    <div class="why-label">Why it was flagged:</div>
+                    <ul class="mb-0">
                         <?php foreach (explode(',', $r['rule_codes']) as $c): ?>
                             <li><strong><?= e($c) ?></strong> &ndash; <?= e($ruleNames[$c] ?? $c) ?></li>
                         <?php endforeach; ?>

@@ -19,6 +19,7 @@ $adminItem = function (string $file, string $icon, string $label) use ($active, 
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= e(($pageTitle ?? 'Home') . ' | ' . APP_NAME) ?></title>
     <link rel="icon" href="<?= e(url('assets/img/favicon.svg')) ?>" type="image/svg+xml">
+    <link rel="preload" href="<?= e(url('assets/fonts/figtree-latin-wght-normal.woff2')) ?>" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="<?= e(url('assets/vendor/bootstrap/bootstrap.min.css')) ?>">
     <link rel="stylesheet" href="<?= e(url('assets/vendor/bootstrap-icons/bootstrap-icons.min.css')) ?>">
     <link rel="stylesheet" href="<?= e(url('assets/css/style.css')) ?>?v=2">

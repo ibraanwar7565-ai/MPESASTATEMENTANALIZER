@@ -143,3 +143,4 @@ dashboard.php, transactions.php, flagged.php, profile.php
 - Dompdf: LGPL-2.1
 - Smalot PdfParser: LGPL-3.0
 - Bootstrap, Bootstrap Icons and Chart.js: MIT
+- Bricolage Grotesque and Figtree fonts: SIL Open Font License 1.1

@@ -60,29 +60,55 @@ require APP_ROOT . '/includes/header.php';
     </div>
 <?php else: ?>
 
+<?php
+$in = (float) $sum['total_in'];
+$out = (float) $sum['total_out'];
+$net = $in - $out;
+$flowTotal = max($in + $out, 1);
+$inPct = round($in / $flowTotal * 100, 1);
+$outTx = max(array_sum($risk), 1);
+$firstName = explode(' ', trim($user['full_name']))[0];
+?>
 <div class="row g-3 mb-3">
-    <?php
-    $kpis = [
-        ['Money in', money($sum['total_in']), 'arrow-down-left-circle', 'bg-pg-soft text-pg'],
-        ['Money out', money($sum['total_out']), 'arrow-up-right-circle', 'bg-danger-subtle text-danger'],
-        ['Transaction charges', money($sum['charges']), 'receipt', 'bg-warning-subtle text-warning-emphasis'],
-        ['Closing balance', money($sum['closing_balance']), 'wallet2', 'bg-primary-subtle text-primary'],
-        ['Transactions', number_format($sum['tx_count']), 'list-ol', 'bg-secondary-subtle text-secondary'],
-        ['Flagged (pending review)', (int) $sum['flagged'] . ' (' . (int) $sum['pending'] . ')', 'exclamation-triangle', 'bg-danger-subtle text-danger'],
-    ];
-    foreach ($kpis as [$label, $value, $icon, $cls]): ?>
-    <div class="col-sm-6 col-lg-4 col-xxl-2">
-        <div class="card kpi h-100">
-            <div class="card-body d-flex align-items-center gap-3">
-                <div class="kpi-icon <?= $cls ?>"><i class="bi bi-<?= $icon ?>"></i></div>
-                <div class="min-w-0">
-                    <div class="kpi-label"><?= e($label) ?></div>
-                    <div class="kpi-value text-truncate"><?= e($value) ?></div>
+    <div class="col-xl-8">
+        <section class="hero h-100" aria-label="Statement summary">
+            <p class="hero-hello">Habari, <?= e($firstName) ?>. Here is what your statement says.</p>
+            <div class="hero-net">
+                <span class="hero-net-label">Net movement</span>
+                <span class="hero-net-value"><?= abs($net) < 0.005 ? '' : ($net < 0 ? '&minus;' : '+') ?><?= e(money(abs($net))) ?></span>
+            </div>
+            <div class="flow" role="img" aria-label="Money in <?= e(money($in)) ?>, money out <?= e(money($out)) ?>">
+                <span class="flow-in" style="width: <?= $inPct ?>%"></span><span class="flow-out" style="width: <?= 100 - $inPct ?>%"></span>
+            </div>
+            <div class="hero-figures">
+                <div><span class="dot dot-in"></span>Money in<strong><?= e(money($in)) ?></strong></div>
+                <div><span class="dot dot-out"></span>Money out<strong><?= e(money($out)) ?></strong></div>
+                <div>Transaction charges<strong><?= e(money($sum['charges'])) ?></strong></div>
+                <div>Closing balance<strong><?= e(money($sum['closing_balance'])) ?></strong></div>
+                <div>Transactions<strong><?= number_format($sum['tx_count']) ?></strong></div>
+            </div>
+        </section>
+    </div>
+    <div class="col-xl-4">
+        <section class="watch h-100 <?= (int) $sum['pending'] ? 'watch-alert' : 'watch-clear' ?>" aria-label="Fraud watch">
+            <div class="watch-head">
+                <div class="watch-count"><?= (int) $sum['pending'] ?></div>
+                <div>
+                    <div class="watch-title"><?= (int) $sum['pending'] === 1 ? 'alert needs your review' : 'alerts need your review' ?></div>
+                    <div class="watch-sub">Flagged (pending review): <?= (int) $sum['flagged'] ?> (<?= (int) $sum['pending'] ?>)</div>
                 </div>
             </div>
-        </div>
+            <div class="riskbar" role="img" aria-label="Low <?= $risk['Low'] ?>, Medium <?= $risk['Medium'] ?>, High <?= $risk['High'] ?> outgoing transactions">
+                <span class="rb-low" style="flex: <?= max($risk['Low'], 0.0001) ?>"></span><span class="rb-med" style="flex: <?= max($risk['Medium'], 0.0001) ?>"></span><span class="rb-high" style="flex: <?= max($risk['High'], 0.0001) ?>"></span>
+            </div>
+            <div class="risk-legend">
+                <span><i class="rb-low"></i>Low <?= $risk['Low'] ?></span>
+                <span><i class="rb-med"></i>Medium <?= $risk['Medium'] ?></span>
+                <span><i class="rb-high"></i>High <?= $risk['High'] ?></span>
+            </div>
+            <a href="<?= e(url('flagged.php')) ?>" class="btn <?= (int) $sum['pending'] ? 'btn-alert' : 'btn-outline-success' ?> w-100 mt-auto"><?= (int) $sum['pending'] ? 'Review alerts' : 'View flagged transactions' ?></a>
+        </section>
     </div>
-    <?php endforeach; ?>
 </div>
 
 <div class="row g-3 mb-3">
@@ -175,5 +201,5 @@ $chartData = [
     'hourly'   => $hourly,
 ];
 $pageScript = '<script>window.PG_DASH = ' . json_encode($chartData, JSON_HEX_TAG | JSON_HEX_AMP) . ';</script>'
-            . '<script src="' . e(url('assets/js/dashboard.js')) . '"></script>';
+            . '<script src="' . e(url('assets/js/dashboard.js')) . '?v=5"></script>';
 require APP_ROOT . '/includes/footer.php';
