@@ -1,6 +1,6 @@
 /*
- * dashboard.js: draws the four dashboard charts with Chart.js.
- * dashboard.php puts the data in window.PG_DASH as JSON:
+ * Dashboard charts (Chart.js).
+ * Data: window.PG_DASH, set by dashboard.php
  *   months, in, out       monthly cash flow (bar chart)
  *   catLabels, catTotals  spending by category (doughnut)
  *   risk                  Low / Medium / High counts (doughnut)
@@ -8,10 +8,10 @@
  */
 (function () {
     var d = window.PG_DASH;
-    // Nothing to draw (no data, or Chart.js did not load): stop quietly.
+    // No data or Chart.js missing
     if (!d || typeof Chart === 'undefined') { return; }
-    // Chart colours come from the CSS variables in assets/css/style.css (section 2),
-    // so changing a colour there also changes the charts. The second value is a fallback.
+    // Colours are read from the CSS variables in style.css
+    // (second argument = fallback).
     var css = getComputedStyle(document.documentElement);
     var color = function (name, fallback) { return css.getPropertyValue(name).trim() || fallback; };
     var C = {
@@ -23,7 +23,7 @@
         grid: color('--chart-grid', '#e6ece8')  // grid lines
     };
 
-    // Shared look for every chart: font, colours and tooltips.
+    // Global chart defaults
     Chart.defaults.font.family = 'Figtree, "Segoe UI", system-ui, sans-serif';
     Chart.defaults.font.size = 12.5;
     Chart.defaults.plugins.legend.labels.usePointStyle = true;
@@ -33,13 +33,13 @@
     Chart.defaults.plugins.tooltip.cornerRadius = 8;
     Chart.defaults.color = C.muted;
     Chart.defaults.borderColor = C.grid;
-    // Category colours for the spending doughnut: --chart-1 to --chart-10 in style.css
+    // Doughnut palette: --chart-1 ... --chart-10
     var defaults = ['#0e8a47', '#0c2a1d', '#db9200', '#3f7fd6', '#b8d94a', '#d23b2e', '#7a5cc7', '#2aa6a1', '#8a968f', '#c26a2a'];
     var palette = defaults.map(function (hex, i) { return color('--chart-' + (i + 1), hex); });
-    // Formats numbers as KES for the axes and tooltips, e.g. 48000 becomes "KES 48,000".
+    // 48000 -> "KES 48,000"
     var kes = function (v) { return 'KES ' + Number(v).toLocaleString(undefined, { maximumFractionDigits: 0 }); };
 
-    // 1. Monthly cash flow: money in vs money out per month.
+    // 1. Monthly cash flow
     var el = document.getElementById('cashFlowChart');
     if (el) {
         new Chart(el, {
@@ -85,7 +85,7 @@
         });
     }
 
-    // 4. Outgoing transactions by hour. Hours 00 to 04 are red: the odd-hour window of rule R2.
+    // 4. Outgoing transactions per hour; 00-04 highlighted (rule R2)
     el = document.getElementById('hourChart');
     if (el) {
         var labels = [];

@@ -1,12 +1,12 @@
 /*
- * app.js: small browser-side helpers, loaded on every page.
- *  1. Ask "Are you sure?" before deleting.
- *  2. Lock a form after the first click, so a slow action is not repeated.
- *  3. Upload page: hide the password box when a CSV file is chosen.
- *  4. Check that the two passwords match before the form is sent.
- * The server repeats every important check; these only make the pages friendlier.
+ * Client-side helpers (all pages):
+ *  1. Confirmation before destructive actions
+ *  2. Prevent double submits
+ *  3. Hide the PDF password field for CSV uploads
+ *  4. Password confirmation check
+ * All checks are repeated on the server.
  */
-// Run after the page has finished loading, so every element exists.
+// Run once the DOM is ready
 document.addEventListener('DOMContentLoaded', function () {
     // Ask before destructive actions (forms or buttons with data-confirm)
     document.querySelectorAll('[data-confirm]').forEach(function (el) {

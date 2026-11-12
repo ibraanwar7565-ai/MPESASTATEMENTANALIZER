@@ -10,7 +10,7 @@ require __DIR__ . '/../config/config.php';
 
 $passed = 0;
 $failed = 0;
-// Records one test result and prints PASS or FAIL.
+// Record and print one result
 function check(string $name, bool $ok, string $detail = ''): void
 {
     global $passed, $failed;
@@ -18,7 +18,7 @@ function check(string $name, bool $ok, string $detail = ''): void
     printf("  [%s] %s%s\n", $ok ? 'PASS' : 'FAIL', $name, $ok || $detail === '' ? '' : " -> $detail");
 }
 
-// Each test compares what the system does with what it should do, using the sample statement's planted fraud patterns.
+// Expected results are based on the planted patterns in the sample statement
 // ---------- Fresh database with the same seed data as MySQL ----------
 @unlink(SQLITE_PATH);
 db()->exec(file_get_contents(__DIR__ . '/sqlite_schema.sql'));

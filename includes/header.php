@@ -1,21 +1,21 @@
 <?php
 /**
- * header.php: the top part of every page.
- * Prints the <head> (title, CSS, fonts), the dark-green sidebar menu and the top bar with the user menu.
- * Before including it, a page sets:
- *   $pageTitle  the text in the browser tab and the top bar
- *   $active     which menu item to highlight, e.g. 'dashboard'
- * Visitors who are not logged in (login and register pages) get the page without the sidebar.
+ * Page header: <head>, sidebar menu and top bar.
+ * Loaded at the top of every page.
+ * Set before including:
+ *   $pageTitle  browser tab and top bar title
+ *   $active     menu item to highlight, e.g. 'dashboard'
+ * Guest pages (login, register) are rendered without the sidebar.
  */
 $user = current_user();
 $active = $active ?? '';
-// Prints one sidebar link. The link of the current page gets the "active" class (highlighted).
+// Sidebar link; the current page gets .active
 $navItem = function (string $key, string $href, string $icon, string $label) use ($active): string {
     $cls = $active === $key ? ' active' : '';
     return '<li><a class="side-link' . $cls . '" href="' . e(url($href)) . '"><i class="bi bi-' . $icon . '"></i><span>' . e($label) . '</span></a></li>';
 };
 $here = basename($_SERVER['SCRIPT_NAME'] ?? '');
-// Same for the Admin links. They all use $active = 'admin', so the file name decides which one is highlighted.
+// Admin links share $active = 'admin'; the file name picks the active one
 $adminItem = function (string $file, string $icon, string $label) use ($active, $here): string {
     $cls = ($active === 'admin' && $here === $file) ? ' active' : '';
     return '<li><a class="side-link' . $cls . '" href="' . e(url('admin/' . $file)) . '"><i class="bi bi-' . $icon . '"></i><span>' . e($label) . '</span></a></li>';
@@ -51,7 +51,7 @@ $adminItem = function (string $file, string $icon, string $label) use ($active, 
                 <?= $navItem('flagged', 'flagged.php', 'exclamation-triangle', 'Flagged') ?>
                 <?= $navItem('reports', 'reports/index.php', 'bar-chart-line', 'Reports') ?>
             </ul>
-            <?php // The Admin part of the menu is printed only for administrators. ?>
+            <?php // Admin menu (administrators only) ?>
             <?php if ($user['role'] === 'Admin'): ?>
             <div class="side-label">Admin</div>
             <ul class="side-nav">
@@ -86,7 +86,7 @@ $adminItem = function (string $file, string $icon, string $label) use ($active, 
         </header>
 <?php endif; ?>
 <main class="<?= $user ? 'pg-content' : '' ?>">
-<?php // One-time messages (success or error) saved by the previous page with flash(). ?>
+<?php // Flash messages from the previous request ?>
 <?php foreach (flashes() as $f): ?>
     <div class="alert alert-<?= e($f['type']) ?> alert-dismissible fade show <?= $user ? '' : 'mx-auto mt-3 guest-alert' ?>" role="alert">
         <?= e($f['message']) ?>

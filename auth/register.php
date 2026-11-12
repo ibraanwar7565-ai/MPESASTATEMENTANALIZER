@@ -1,12 +1,12 @@
 <?php
 /**
- * Registration page.
- * Validates the details, refuses an e-mail that is already used, and saves the new account
- * with a bcrypt-hashed password. New accounts always get the role User.
+ * Registration.
+ * Validates input, rejects duplicate e-mails and stores a bcrypt hash.
+ * New accounts always get the User role.
  */
 require_once __DIR__ . '/../config/config.php';
 
-// Already logged in? Go straight to the dashboard.
+// Already logged in
 if (current_user()) {
     redirect('dashboard.php');
 }
@@ -15,27 +15,27 @@ $data = ['full_name' => '', 'email' => '', 'phone' => ''];
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Reject the form if it did not come from this page (CSRF check).
+    // CSRF check
     verify_csrf();
-    // Read and clean the form fields.
+    // Read and normalise input
     $data['full_name'] = trim($_POST['full_name'] ?? '');
     $data['email'] = strtolower(trim($_POST['email'] ?? ''));
     $data['phone'] = preg_replace('/\s+/', '', $_POST['phone'] ?? '');
     $password = (string) ($_POST['password'] ?? '');
     $confirm = (string) ($_POST['confirm_password'] ?? '');
 
-    // Validation: each failed check adds a message to $errors. Nothing is saved while $errors is not empty.
+    // Validation (nothing is saved while $errors is not empty)
     if (mb_strlen($data['full_name']) < 3 || mb_strlen($data['full_name']) > 100) {
         $errors[] = 'Enter your full name (3 to 100 characters).';
     }
     if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
         $errors[] = 'Enter a valid e-mail address.';
     }
-    // Kenyan mobile number: 07..., 01... or 254..., then 8 digits. The phone number is optional.
+    // Optional Safaricom number: 07 / 01 / 254 + 8 digits
     if ($data['phone'] !== '' && !preg_match('/^(\+?254|0)[17]\d{8}$/', $data['phone'])) {
         $errors[] = 'Enter a valid Safaricom number, e.g. 0712345678.';
     }
-    // Password strength: at least 8 characters, with at least one letter and one number.
+    // Min. 8 characters with letters and digits
     if (strlen($password) < 8 || !preg_match('/[A-Za-z]/', $password) || !preg_match('/\d/', $password)) {
         $errors[] = 'The password must have at least 8 characters, including letters and numbers.';
     }
@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'The two passwords do not match.';
     }
     if (!$errors) {
-        // The e-mail must not belong to another account (the database also makes email UNIQUE).
+        // E-mail must be unique (also enforced by the UNIQUE index)
         $st = db()->prepare('SELECT COUNT(*) FROM users WHERE email = ?');
         $st->execute([$data['email']]);
         if ($st->fetchColumn()) {
@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     if (!$errors) {
-        // password_hash(..., PASSWORD_BCRYPT) turns the password into a one-way bcrypt hash before it is saved.
+        // Store a bcrypt hash, never the password itself
         $st = db()->prepare("INSERT INTO users (full_name, email, phone, password_hash, role, status, created_at) VALUES (?, ?, ?, ?, 'User', 'Active', ?)");
         $st->execute([$data['full_name'], $data['email'], $data['phone'], password_hash($password, PASSWORD_BCRYPT), now()]);
         log_activity((int) db()->lastInsertId(), 'Registered a new account');

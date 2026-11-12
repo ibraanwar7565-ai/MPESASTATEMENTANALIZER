@@ -1,15 +1,15 @@
 <?php
 /**
- * Upload page: the upload form, the two sample-statement buttons and the last 5 uploads.
- * This page only collects the file; classes/StatementImporter.php checks and processes it.
+ * Upload page: form, sample statements and the last 5 uploads.
+ * Processing is done by classes/StatementImporter.php.
  */
 require_once __DIR__ . '/../config/config.php';
-// Stop here unless someone is logged in (otherwise: go to the login page).
+// Requires login
 $user = require_login();
 
-// Runs when one of the forms on this page is submitted.
+// Handle upload / sample forms
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Security check: the form must come from this page.
+    // CSRF check
     verify_csrf();
     $importer = new StatementImporter(db());
     try {
@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             copy(APP_ROOT . '/sample/' . $file, $tmp);
             $result = $importer->import((int) $user['user_id'], $tmp, $file, $pwd);
         } else {
-            // A real upload. $_FILES holds the file PHP received from the browser.
+            // Uploaded file
             $f = $_FILES['statement'] ?? null;
             if (!$f || $f['error'] === UPLOAD_ERR_NO_FILE) {
                 throw new RuntimeException('Choose a statement file to upload.');
@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException($f['error'] === UPLOAD_ERR_INI_SIZE || $f['error'] === UPLOAD_ERR_FORM_SIZE
                     ? 'The file is larger than the allowed size (10 MB).' : 'The upload failed. Please try again.');
             }
-            // Quick checks here give fast, clear messages; the importer repeats the full checks.
+            // Early checks for clear messages (the importer re-validates)
             $ext = strtolower(pathinfo($f['name'], PATHINFO_EXTENSION));
             if (!in_array($ext, ['pdf', 'csv'], true)) {
                 throw new RuntimeException('Only PDF or CSV M-Pesa statements are allowed.');
@@ -42,24 +42,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($ext === 'pdf' && $password === '') {
                 throw new RuntimeException('Enter the statement password that Safaricom sent to you by SMS.');
             }
-            // Move the file into storage/tmp/ under a random name (never the user's own file name).
+            // Random file name in storage/tmp/
             $tmp = UPLOAD_PATH . bin2hex(random_bytes(8)) . '.' . $ext;      // random name, never the user's
             if (!move_uploaded_file($f['tmp_name'], $tmp)) {
                 throw new RuntimeException('The file could not be saved for processing.');
             }
             $result = $importer->import((int) $user['user_id'], $tmp, $f['name'], $password);
         }
-        // Success: show the result and open the dashboard for this statement.
+        // Success: open the dashboard for this statement
         flash('success', "Statement analysed: {$result['total']} transactions imported, {$result['flagged']} flagged as suspicious. The uploaded file has been deleted.");
         redirect('dashboard.php?statement=' . $result['statement_id']);
     } catch (RuntimeException $ex) {
-        // Any problem (wrong password, wrong file type, duplicate...) is shown as a red message.
+        // Validation errors are shown to the user
         flash('danger', $ex->getMessage());
         redirect('statements/upload.php');
     }
 }
 
-// The user's last 5 uploads, with how many transactions in each were flagged.
+// Last 5 uploads with flagged counts
 $st = db()->prepare("SELECT s.*, (SELECT COUNT(*) FROM transactions t WHERE t.statement_id = s.statement_id AND t.risk_score >= " . MEDIUM_RISK . ") AS flagged
                      FROM statements s WHERE s.user_id = ? ORDER BY s.uploaded_at DESC, s.statement_id DESC LIMIT 5");
 $st->execute([$user['user_id']]);
@@ -76,7 +76,7 @@ require APP_ROOT . '/includes/header.php';
     <div class="col-lg-7">
         <div class="card">
             <div class="card-body p-4">
-                <?php // enctype="multipart/form-data" is needed for a form that sends a file. ?>
+                <?php // File upload form ?>
                 <form method="post" enctype="multipart/form-data">
                     <?= csrf_field() ?>
                     <input type="hidden" name="MAX_FILE_SIZE" value="<?= MAX_UPLOAD_SIZE ?>">

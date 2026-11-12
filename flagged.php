@@ -1,22 +1,22 @@
 <?php
 /**
- * Flagged transactions page: every alert with its risk score and the reasons,
- * plus the Confirm / Dismiss / Undo buttons.
+ * Flagged transactions: alerts with score and reasons,
+ * and the Confirm / Dismiss / Undo actions.
  */
 require_once __DIR__ . '/config/config.php';
-// Stop here unless someone is logged in (otherwise: go to the login page).
+// Requires login
 $user = require_login();
 
 // Review a flagged transaction: Confirmed (fraud) / Dismissed (false alarm) / Pending (undo)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Security check: the form must come from this page.
+    // CSRF check
     verify_csrf();
     $txId = (int) ($_POST['transaction_id'] ?? 0);
     $decision = $_POST['decision'] ?? '';
-    // Accept only the three allowed decisions.
+    // Allowed decisions
     if (in_array($decision, ['Confirmed', 'Dismissed', 'Pending'], true)) {
-        // Save the decision, who made it and when. For a normal user, the extra condition makes sure
-        // the transaction belongs to one of their own statements.
+        // Record the decision and reviewer. Non-admins can only update
+        // transactions from their own statements.
         $sql = 'UPDATE flagged_transactions SET review_status = ?, reviewed_by = ?, reviewed_at = ? WHERE transaction_id = ?'
              . ($user['role'] === 'Admin' ? '' : ' AND transaction_id IN (SELECT t.transaction_id FROM transactions t
                      JOIN statements s ON s.statement_id = t.statement_id WHERE s.user_id = ?)');
@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $st = db()->prepare($sql);
         $st->execute($args);
-        // rowCount() is the number of rows changed; 0 means nothing was found or allowed.
+        // Nothing updated = not found or not allowed
         if ($st->rowCount()) {
             log_activity((int) $user['user_id'], "Marked flagged transaction #$txId as $decision");
             $msg = ['Confirmed' => 'Marked as fraud. Call Safaricom customer care on 100 and forward any scam SMS to 333.',
@@ -38,13 +38,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     redirect('flagged.php?' . http_build_query(['status' => $_POST['status_filter'] ?? '', 'level' => $_POST['level_filter'] ?? '']));
 }
 
-// Which tab is open (Pending is the default) and the optional risk-level filter.
+// Tab (default Pending) and risk filter
 $status = in_array($_GET['status'] ?? 'Pending', ['Pending', 'Confirmed', 'Dismissed', ''], true) ? ($_GET['status'] ?? 'Pending') : 'Pending';
 $level = in_array($_GET['level'] ?? '', ['Medium', 'High'], true) ? $_GET['level'] : '';
 $rs = new ReportService(db(), $user);
 $rows = $rs->flagged($status, $level);
 $ruleNames = ReportService::ruleNames(db());
-// The numbers shown on the tabs.
+// Tab counts
 $counts = [];
 foreach (['Pending', 'Confirmed', 'Dismissed', ''] as $s) {
     $counts[$s] = count($rs->flagged($s));
@@ -76,7 +76,7 @@ require APP_ROOT . '/includes/header.php';
 </ul>
 
 <div class="row g-3">
-<?php // One card per flagged transaction. The ring shows the risk score out of 100. ?>
+<?php // One card per flagged transaction ?>
 <?php foreach ($rows as $r): ?>
     <div class="col-xl-6">
         <div class="card h-100 alert-card <?= $r['risk_level'] === 'High' ? 'is-high' : 'is-medium' ?>">
@@ -97,7 +97,7 @@ require APP_ROOT . '/includes/header.php';
                         </div>
                     </div>
                 </div>
-                <?php // The rules this transaction broke, with their names. ?>
+                <?php // Triggered rules ?>
                 <div class="why mb-3">
                     <div class="why-label">Why it was flagged:</div>
                     <ul class="mb-0">
@@ -110,7 +110,7 @@ require APP_ROOT . '/includes/header.php';
                     <div><?= status_badge($r['review_status']) ?>
                         <?php if ($r['reviewed_at']): ?><span class="small text-muted ms-1"><?= e(date('d M Y H:i', strtotime($r['reviewed_at']))) ?></span><?php endif; ?>
                     </div>
-                    <?php // Review buttons. Each button sends its decision; the hidden fields keep the same tab open after saving. ?>
+                    <?php // Review actions (hidden fields keep the current tab) ?>
                     <form method="post" class="d-flex gap-1 no-print">
                         <?= csrf_field() ?>
                         <input type="hidden" name="transaction_id" value="<?= (int) $r['transaction_id'] ?>">

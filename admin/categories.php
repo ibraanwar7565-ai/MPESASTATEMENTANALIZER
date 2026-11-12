@@ -4,7 +4,7 @@
  * Keywords are separated by "|". Categorizer.php uses them to sort transactions into categories.
  */
 require_once __DIR__ . '/../config/config.php';
-// Admin only: anyone else gets "Access denied" and is sent to the dashboard.
+// Admins only
 $admin = require_admin();
 $errors = [];
 $editId = (int) ($_GET['edit'] ?? 0);
@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
     if (($_POST['action'] ?? '') === 'delete') {
         $id = (int) $_POST['category_id'];
-        // Delete: its transactions become Uncategorised first, then the category is removed.
+        // Uncategorise its transactions, then delete
         db()->prepare('UPDATE transactions SET category_id = NULL WHERE category_id = ?')->execute([$id]);
         db()->prepare('DELETE FROM categories WHERE category_id = ?')->execute([$id]);
         log_activity((int) $admin['user_id'], "Deleted category #$id");

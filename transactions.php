@@ -1,13 +1,13 @@
 <?php
 /**
- * Transactions page: every transaction, with filters, 50 per page.
- * The user can also correct a transaction's category from the drop-down in each row.
+ * Transactions: filters, pagination (50 per page)
+ * and inline category correction.
  */
 require_once __DIR__ . '/config/config.php';
-// Stop here unless someone is logged in (otherwise: go to the login page).
+// Requires login
 $user = require_login();
 
-// All categories (id => name), for the filter and the category drop-downs.
+// id => name
 $categories = db()->query('SELECT category_id, name FROM categories ORDER BY name')->fetchAll(PDO::FETCH_KEY_PAIR);
 
 // Update the category of one transaction (user correction)
@@ -15,9 +15,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['transaction_id'])) {
     verify_csrf();
     $txId = (int) $_POST['transaction_id'];
     $catId = (int) ($_POST['category_id'] ?? 0);
-    // Only accept a category that exists; anything else becomes "no category".
+    // Unknown category id -> uncategorised
     $catId = isset($categories[$catId]) ? $catId : null;
-    // A normal user can only change transactions in their own statements.
+    // Non-admins: own statements only
     $sql = 'UPDATE transactions SET category_id = ? WHERE transaction_id = ?'
          . ($user['role'] === 'Admin' ? '' : ' AND statement_id IN (SELECT statement_id FROM statements WHERE user_id = ?)');
     $st = db()->prepare($sql);
@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['transaction_id'])) {
 }
 
 // ---------- Filters ----------
-// Read the filters from the address bar. Each one is checked against the allowed values or a date pattern.
+// Filters from the query string (whitelisted / validated)
 $f = [
     'statement' => (int) ($_GET['statement'] ?? 0),
     'category'  => (int) ($_GET['category'] ?? 0),
@@ -41,7 +41,7 @@ $f = [
     'to'        => preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['to'] ?? '') ? $_GET['to'] : '',
 ];
 $params = [];
-// Build the WHERE part step by step. Each filter adds a ? placeholder and its value, never raw text (no SQL injection).
+// Each filter adds a bound parameter
 $where = scope_sql($user, $f['statement'] ?: null, $params);
 if ($f['category']) { $where .= ' AND t.category_id = ?'; $params[] = $f['category']; }
 if ($f['direction']) { $where .= ' AND t.direction = ?'; $params[] = $f['direction']; }
@@ -50,7 +50,7 @@ if ($f['q'] !== '') { $where .= ' AND (t.details LIKE ? OR t.receipt_no LIKE ? O
 if ($f['from']) { $where .= ' AND t.completion_time >= ?'; $params[] = $f['from'] . ' 00:00:00'; }
 if ($f['to']) { $where .= ' AND t.completion_time <= ?'; $params[] = $f['to'] . ' 23:59:59'; }
 
-// The FROM ... WHERE part is shared by the totals query and the page query.
+// Shared by the totals and page queries
 $base = "FROM transactions t JOIN statements s ON s.statement_id = t.statement_id
          LEFT JOIN categories c ON c.category_id = t.category_id WHERE 1 = 1 $where";
 $st = db()->prepare("SELECT COUNT(*) AS n,
@@ -59,7 +59,7 @@ $st = db()->prepare("SELECT COUNT(*) AS n,
 $st->execute($params);
 $totals = $st->fetch();
 
-// Pagination: 50 rows per page. LIMIT and OFFSET fetch only the rows of the current page.
+// Pagination
 $perPage = 50;
 $pages = max(1, (int) ceil($totals['n'] / $perPage));
 $page = min($pages, max(1, (int) ($_GET['page'] ?? 1)));

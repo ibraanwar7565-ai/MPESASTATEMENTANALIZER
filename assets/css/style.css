@@ -1,55 +1,8 @@
-/* =====================================================================================
-   style.css: the whole look of PesaGuard.
-   Bootstrap 5 gives the basic layout and components; this file gives PesaGuard its own
-   colours, fonts and shapes on top of it.
+/* PesaGuard stylesheet, loaded after Bootstrap 5.
+   Colours and sizes are CSS variables in :root.
+   PDF report colours live in reports/export.php; the fallback error page in config/config.php. */
 
-   HOW TO CHANGE A COLOUR
-   ----------------------
-   1. Find the part of the page in the list below.
-   2. Go to the :root block (section 2) and change the hex value of that variable, e.g.
-          --leaf: #0e8a47;   ->   --leaf: #1565c0;
-      Every place that uses var(--leaf) changes at once.
-   3. Save, then press Ctrl + F5 in the browser so it loads the new file.
-   A hex colour is # followed by red, green and blue in 2 digits each: #ff0000 = red.
-   VS Code shows a small coloured square next to each hex value; click it to pick a colour.
-
-   Which variable colours what:
-     Main buttons, links, "money in" bars ............ --leaf   (hover: --leaf-dark)
-     Sidebar, dashboard summary panel, login page .... --ink
-     Highlighted menu item ........................... --ink-2 and --spark (lime bar and icon)
-     Logo square, lime accents ....................... --spark
-     Page background ................................. --mist
-     Cards and boxes ................................. --surface (white)
-     Normal text / grey text ......................... --text / --muted
-     Borders around cards and tables ................. --line
-     High risk, delete buttons, error messages ....... --red, --red-dark, --red-soft
-     Medium risk, warning messages ................... --amber, --amber-soft
-     Low risk, success messages ...................... --leaf, --leaf-soft
-     "Money out" amounts in tables ................... --money-out
-     "Money out" part of the dashboard bar ........... --money-out-bar
-     Highlighted High / Medium rows in tables ........ --row-high / --row-medium
-     Sidebar text, labels and icons .................. --side-text, --side-label, --side-icon
-     Dashboard charts ................................ --leaf, --ink, --amber, --red, --chart-1 to --chart-10
-                                                       (assets/js/dashboard.js reads them from here)
-
-   Colours that are NOT in this file:
-     - the PDF reports: the <style> block in reports/export.php (Dompdf cannot read this file)
-     - the "Database not available" error page: pg_fail() in config/config.php
-
-   Sections:
-     1. Fonts                 5. Dashboard summary panel and fraud panel
-     2. Colours and sizes     6. Flagged transactions (alert cards)
-     3. Whole page            7. Shared components: buttons, forms, cards, tables, badges, messages
-     4. Sidebar and top bar   8. Login, register and installer pages
-                              9. Printing
-   ===================================================================================== */
-
-
-/* =====================================================================================
-   1. FONTS
-   Both fonts are stored in assets/fonts, so the system looks the same without internet.
-   Bricolage Grotesque = headings and big numbers. Figtree = all normal text.
-   ===================================================================================== */
+/* ---------- Fonts (self-hosted in assets/fonts) ---------- */
 @font-face {
     font-family: "Bricolage Grotesque";
     src: url("../fonts/bricolage-grotesque-latin-wght-normal.woff2") format("woff2");
@@ -63,84 +16,79 @@
     font-display: swap;
 }
 
-
-/* =====================================================================================
-   2. COLOURS AND SIZES (CSS variables)
-   A variable is written --name: value; and used as var(--name).
-   Change a value here and it changes everywhere it is used.
-   ===================================================================================== */
+/* ---------- Colour and size tokens ---------- */
 :root {
-    /* ---- Brand colours: change these to re-colour the whole system ---- */
-    --ink: #0c2a1d;            /* dark forest green: sidebar, dashboard summary panel, login background, active tab */
-    --ink-2: #123828;          /* a little lighter: highlighted menu item, icon squares on the login page */
-    --leaf: #0e8a47;           /* main green: buttons, links, focus outline, Low risk, "money in" chart bars */
-    --leaf-dark: #0a6b37;      /* darker green: button hover, "money in" amounts, green badge text */
-    --leaf-soft: #e3f3e9;      /* very light green: green badges, success messages, the role tag */
-    --spark: #b8f04a;          /* lime accent: logo square, active menu bar and icon, "money in" part of the dashboard bar */
+    /* Brand */
+    --ink: #0c2a1d;            /* sidebar, summary panel, login background, active tab, rule chips */
+    --ink-2: #123828;          /* active menu item, login feature icons */
+    --leaf: #0e8a47;           /* primary buttons, links, focus ring, Low risk, money-in bars */
+    --leaf-dark: #0a6b37;      /* button hover, incoming amounts, green badge text */
+    --leaf-soft: #e3f3e9;      /* green badges, success messages, role tag */
+    --spark: #b8f04a;          /* logo square, active menu bar and icon, money-in bar */
 
-    /* ---- Page, cards and text ---- */
-    --mist: #eef3ef;           /* page background (light grey-green) */
-    --surface: #ffffff;        /* cards, boxes and the user button in the top bar (white) */
-    --on-dark: #ffffff;        /* text on dark green backgrounds (white) */
-    --line: #dfe7e2;           /* thin borders around cards and tables */
-    --text: #13241b;           /* normal text (almost black, slightly green) */
-    --muted: #5a6b61;          /* grey text: labels, table headings, subtitles */
-    --input-border: #cfdad3;   /* border of text boxes and drop-downs */
+    /* Page, cards, text */
+    --mist: #eef3ef;           /* page background */
+    --surface: #ffffff;        /* cards, panels, user menu button */
+    --on-dark: #ffffff;        /* text on --ink backgrounds */
+    --line: #dfe7e2;           /* card and table borders */
+    --text: #13241b;           /* body text */
+    --muted: #5a6b61;          /* secondary text, labels, table headings */
+    --input-border: #cfdad3;   /* text boxes and selects */
 
-    /* ---- Risk and status ---- */
-    --red: #d23b2e;            /* High risk, Confirm / delete buttons, alert count on the dashboard */
-    --red-dark: #b22f24;       /* red buttons when the mouse is over them */
-    --red-soft: #fbe6e3;       /* light red: red badges and error messages */
+    /* Risk and status */
+    --red: #d23b2e;            /* High risk, danger buttons, pending alert count */
+    --red-dark: #b22f24;       /* danger button hover */
+    --red-soft: #fbe6e3;       /* red badges, error messages */
     --amber: #db9200;          /* Medium risk */
-    --amber-soft: #fbf0d3;     /* light amber: amber badges and warning messages */
-    --money-out: #b02a1f;      /* "money out" amounts in tables (red) */
-    --money-out-bar: #ff8a73;  /* "money out" part of the bar on the dashboard summary (coral, easy to read on dark green) */
+    --amber-soft: #fbf0d3;     /* amber badges, warning messages */
+    --money-out: #b02a1f;      /* outgoing amounts in tables */
+    --money-out-bar: #ff8a73;  /* money-out part of the summary bar */
 
-    /* ---- Sidebar (dark green menu on the left) ---- */
-    --side-text: #c3d8cb;      /* menu link text */
+    /* Sidebar */
+    --side-text: #c3d8cb;      /* menu links */
     --side-icon: #86a996;      /* menu icons */
-    --side-label: #6c8f7b;     /* the "Menu" and "Admin" labels, and the footer line */
-    --side-subtitle: #7fa18e;  /* "Fraud detection" under the PesaGuard name */
+    --side-label: #6c8f7b;     /* "Menu" / "Admin" labels, sidebar footer */
+    --side-subtitle: #7fa18e;  /* "Fraud detection" under the logo */
 
-    /* ---- Dashboard summary and fraud panel ---- */
-    --on-dark-muted: #9dbcab;      /* small labels inside the dark summary panel */
-    --watch-alert-bg: #fff7f5;     /* fraud panel background when alerts are waiting */
-    --watch-alert-border: #f3c9c3; /* its border */
+    /* Dashboard panels */
+    --on-dark-muted: #9dbcab;      /* labels inside the summary panel */
+    --watch-alert-bg: #fff7f5;     /* fraud panel with pending alerts */
+    --watch-alert-border: #f3c9c3;
 
-    /* ---- Flagged transactions page ---- */
-    --high-card-border: #f0bdb6;   /* border of a High-risk alert card */
-    --ring-track: #e8eeea;         /* empty part of the score ring */
+    /* Flagged page */
+    --high-card-border: #f0bdb6;   /* High-risk alert card border */
+    --ring-track: #e8eeea;         /* unfilled part of the score ring */
 
-    /* ---- Tables ---- */
-    --row-line: #ecf1ed;       /* line between table rows */
-    --row-hover: #f6f9f7;      /* row background when the mouse is over it */
-    --row-high: #fdf1ef;       /* background of a High-risk row (light red) */
-    --row-medium: #fdf8e9;     /* background of a Medium-risk row (light amber) */
+    /* Tables */
+    --row-line: #ecf1ed;
+    --row-hover: #f6f9f7;
+    --row-high: #fdf1ef;       /* High-risk row */
+    --row-medium: #fdf8e9;     /* Medium-risk row */
 
-    /* ---- Badges (small coloured labels) ---- */
+    /* Badges */
     --badge-red-text: #a3271c;
     --badge-amber-text: #7d5300;
     --badge-grey-bg: #e6ebe8;
     --badge-grey-text: #46544c;
 
-    /* ---- Messages at the top of a page ---- */
-    --success-text: #0a5a2f;   /* green message text, e.g. "Category updated." */
-    --danger-text: #8f2218;    /* red message text, e.g. "Wrong statement password" */
-    --warning-text: #6f4a00;   /* amber message text */
-    --info-bg: #e4eef9;        /* blue message background, e.g. "You have logged out." */
-    --info-text: #1d4a80;      /* blue message text */
+    /* Flash messages */
+    --success-text: #0a5a2f;
+    --danger-text: #8f2218;
+    --warning-text: #6f4a00;
+    --info-bg: #e4eef9;
+    --info-text: #1d4a80;
 
-    /* ---- Other borders and backgrounds ---- */
-    --chip-hover-border: #c3d1c9;  /* user button border when the mouse is over it */
-    --outline-btn-border: #a9d3ba; /* border of green outline buttons, e.g. "Load sample CSV" */
-    --drop-border: #a9c9b6;        /* dashed border of the upload box */
-    --drop-bg: #f8fbf9;            /* background of the upload box */
-    --login-text: #cfe2d6;         /* the three feature lines on the login page */
-    --partner-text: #33443a;       /* text in the white M-PESA badge on the login page */
+    /* Misc */
+    --chip-hover-border: #c3d1c9;  /* user menu button hover */
+    --outline-btn-border: #a9d3ba; /* green outline buttons */
+    --drop-border: #a9c9b6;        /* upload drop zone */
+    --drop-bg: #f8fbf9;
+    --login-text: #cfe2d6;         /* login feature list */
+    --partner-text: #33443a;       /* M-PESA badge text */
 
-    /* ---- Dashboard charts (read by assets/js/dashboard.js) ---- */
-    --chart-grid: #e6ece8;     /* grid lines behind the bars */
-    --chart-1: #0e8a47;        /* colours of the categories in the spending doughnut, in order */
+    /* Charts (read by assets/js/dashboard.js) */
+    --chart-grid: #e6ece8;
+    --chart-1: #0e8a47;        /* spending doughnut, in category order */
     --chart-2: #0c2a1d;
     --chart-3: #db9200;
     --chart-4: #3f7fd6;
@@ -151,20 +99,18 @@
     --chart-9: #8a968f;
     --chart-10: #c26a2a;
 
-    /* ---- Fonts and corner roundness ---- */
-    --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;   /* headings */
-    --r-sm: 8px;               /* small rounded corners */
-    --r-md: 12px;              /* cards and messages */
-    --r-lg: 20px;              /* big panels and the upload box */
+    /* Type and radius */
+    --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+    --r-sm: 8px;
+    --r-md: 12px;
+    --r-lg: 20px;
 
-    /* ---- Settings that Bootstrap reads ---- */
+    /* Bootstrap */
     --bs-body-font-family: "Figtree", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
-    /* Link colours. Bootstrap needs them as "red, green, blue" numbers:
-       14,138,71 is --leaf and 10,107,55 is --leaf-dark. If you change those two greens, change these too. */
-    --bs-link-color-rgb: 14,138,71;
-    --bs-link-hover-color-rgb: 10,107,55;
+    --bs-link-color-rgb: 14,138,71;         /* = --leaf (Bootstrap needs R,G,B) */
+    --bs-link-hover-color-rgb: 10,107,55;   /* = --leaf-dark */
 
-    /* Old names still used by a few pages; they simply point to the colours above */
+    /* Legacy aliases */
     --pg-green: var(--leaf);
     --pg-green-dark: var(--leaf-dark);
     --pg-green-soft: var(--leaf-soft);
@@ -173,59 +119,53 @@
     --pg-radius: var(--r-md);
 }
 
-
-/* =====================================================================================
-   3. WHOLE PAGE
-   ===================================================================================== */
+/* ---------- Base ---------- */
 body {
-    background: var(--mist);                    /* page background */
-    color: var(--text);                         /* normal text colour */
-    min-height: 100vh;                          /* at least the full height of the window */
-    font-size: .95rem;                          /* base text size (1rem = 16px) */
-    -webkit-font-smoothing: antialiased;        /* smoother text on some screens */
+    background: var(--mist);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: .95rem;
+    -webkit-font-smoothing: antialiased;
 }
-/* All headings use the display font */
+/* headings */
 h1, h2, h3, .h1, .h2, .h3, .h4, .h5 { font-family: var(--display); letter-spacing: -.02em; }
 
-/* Green outline around whatever has keyboard focus (Tab key), so keyboard users can see where they are */
+/* keyboard focus */
 :focus-visible { outline: 3px solid color-mix(in srgb, var(--leaf) 45%, transparent); outline-offset: 2px; }
 
-/* Users who ask their computer for less motion get no animations */
+/* reduced motion */
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 
-/* Big page heading (e.g. "Dashboard") and the grey line under it */
+/* page heading and subtitle */
 .page-title { font-size: clamp(1.7rem, 1.2rem + 1.4vw, 2.3rem); font-weight: 700; margin-bottom: .25rem; line-height: 1.1; }
 .page-sub { color: var(--muted); margin-bottom: 1.4rem; max-width: 70ch; }
 
+/* ---------- Sidebar and top bar (includes/header.php) ---------- */
 
-/* =====================================================================================
-   4. SIDEBAR AND TOP BAR (includes/header.php)
-   ===================================================================================== */
-
-/* The whole screen: sidebar on the left, main area on the right */
+/* layout: sidebar + main area */
 .pg-shell { display: flex; min-height: 100vh; }
 
-/* ---- Sidebar ---- */
+/* sidebar */
 .pg-side {
     width: 248px;
     flex: 0 0 248px;
-    background: var(--ink) !important;          /* SIDEBAR COLOUR */
+    background: var(--ink) !important;
     color: var(--side-text);
     display: flex !important;
     flex-direction: column;
 }
-/* On big screens the sidebar stays in place while the page scrolls */
+/* fixed sidebar on desktop */
 @media (min-width: 992px) { .pg-side { position: sticky; top: 0; height: 100vh; } }
-/* On phones the sidebar slides in from the left (Bootstrap "offcanvas"); same colour */
+/* mobile offcanvas */
 .pg-side.offcanvas-lg { --bs-offcanvas-bg: var(--ink); --bs-offcanvas-width: 248px; }
 
-/* Logo and name at the top of the sidebar */
+/* logo and app name */
 .side-brand {
     display: flex;
     align-items: center;
     gap: .7rem;
     padding: 1.3rem 1.25rem 1.1rem;
-    color: var(--on-dark);                      /* "PesaGuard" in white */
+    color: var(--on-dark);
     text-decoration: none;
     font-family: var(--display);
     font-weight: 700;
@@ -233,7 +173,7 @@ h1, h2, h3, .h1, .h2, .h3, .h4, .h5 { font-family: var(--display); letter-spacin
     line-height: 1;
     letter-spacing: -.02em;
 }
-.side-brand small {                             /* "Fraud detection" under the name */
+.side-brand small {
     display: block;
     font-family: var(--bs-body-font-family);
     font-weight: 500;
@@ -242,7 +182,7 @@ h1, h2, h3, .h1, .h2, .h3, .h4, .h5 { font-family: var(--display); letter-spacin
     margin-top: .3rem;
     letter-spacing: 0;
 }
-.brand-mark {                                   /* the lime square with the shield icon */
+.brand-mark {                                   /* logo square */
     width: 38px;
     height: 38px;
     border-radius: 11px;
@@ -253,12 +193,12 @@ h1, h2, h3, .h1, .h2, .h3, .h4, .h5 { font-family: var(--display); letter-spacin
     color: var(--ink);
 }
 
-/* Menu area (scrolls if there are many links) */
+/* menu */
 .side-scroll { flex: 1 1 auto; overflow-y: auto; padding: .2rem .75rem 1rem; }
-.side-label { font-size: .76rem; font-weight: 600; color: var(--side-label); padding: 1rem .7rem .4rem; }  /* "Menu", "Admin" */
+.side-label { font-size: .76rem; font-weight: 600; color: var(--side-label); padding: 1rem .7rem .4rem; }
 .side-nav { list-style: none; margin: 0; padding: 0; }
 
-/* One menu link */
+/* menu link */
 .side-link {
     position: relative;
     display: flex;
@@ -271,11 +211,11 @@ h1, h2, h3, .h1, .h2, .h3, .h4, .h5 { font-family: var(--display); letter-spacin
     text-decoration: none;
     font-weight: 500;
 }
-.side-link .bi { font-size: 1.05rem; width: 1.2rem; text-align: center; color: var(--side-icon); }   /* its icon */
-.side-link:hover { background: rgba(255, 255, 255, .06); color: var(--on-dark); }                     /* mouse over: faint white */
-/* The menu item of the page you are on */
+.side-link .bi { font-size: 1.05rem; width: 1.2rem; text-align: center; color: var(--side-icon); }
+.side-link:hover { background: rgba(255, 255, 255, .06); color: var(--on-dark); }
+/* current page */
 .side-link.active { background: var(--ink-2); color: var(--on-dark); font-weight: 600; }
-.side-link.active::before {                     /* the lime bar on its left edge */
+.side-link.active::before {                     /* active indicator */
     content: "";
     position: absolute;
     left: -.75rem;
@@ -285,13 +225,13 @@ h1, h2, h3, .h1, .h2, .h3, .h4, .h5 { font-family: var(--display); letter-spacin
     border-radius: 0 4px 4px 0;
     background: var(--spark);
 }
-.side-link.active .bi { color: var(--spark); }  /* its icon turns lime */
-.side-foot { padding: .9rem 1.25rem; font-size: .75rem; color: var(--side-label); }   /* "MKU BBIT Project" line */
+.side-link.active .bi { color: var(--spark); }
+.side-foot { padding: .9rem 1.25rem; font-size: .75rem; color: var(--side-label); }
 
-/* ---- Main area (everything right of the sidebar) ---- */
+/* main area */
 .pg-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
 
-/* Top bar: stays at the top when you scroll; slightly see-through */
+/* sticky top bar */
 .pg-top {
     position: sticky;
     top: 0;
@@ -300,19 +240,19 @@ h1, h2, h3, .h1, .h2, .h3, .h4, .h5 { font-family: var(--display); letter-spacin
     align-items: center;
     height: 62px;
     padding: 0 2rem;
-    background: color-mix(in srgb, var(--mist) 86%, transparent);   /* page colour, 86% solid */
-    backdrop-filter: blur(10px);                                    /* blurs what scrolls under it */
+    background: color-mix(in srgb, var(--mist) 86%, transparent);
+    backdrop-filter: blur(10px);
     border-bottom: 1px solid transparent;
 }
-.top-title { font-weight: 600; color: var(--muted); font-size: .9rem; }   /* page name on the left */
+.top-title { font-weight: 600; color: var(--muted); font-size: .9rem; }
 
-/* The round user button on the right (name, role, menu) */
+/* user menu button */
 .user-chip {
     display: inline-flex;
     align-items: center;
     gap: .55rem;
     padding: .28rem .7rem .28rem .28rem;
-    border-radius: 999px;                       /* 999px = fully rounded ends */
+    border-radius: 999px;
     background: var(--surface);
     border: 1px solid var(--line);
     color: var(--text);
@@ -321,7 +261,7 @@ h1, h2, h3, .h1, .h2, .h3, .h4, .h5 { font-family: var(--display); letter-spacin
     font-size: .88rem;
 }
 .user-chip:hover { border-color: var(--chip-hover-border); color: var(--text); }
-.avatar {                                       /* circle with the first letter of the name */
+.avatar {                                       /* user initial */
     width: 32px;
     height: 32px;
     border-radius: 50%;
@@ -333,7 +273,7 @@ h1, h2, h3, .h1, .h2, .h3, .h4, .h5 { font-family: var(--display); letter-spacin
     font-weight: 700;
     font-size: .9rem;
 }
-.role-tag {                                     /* the "User" / "Admin" tag */
+.role-tag {                                     /* role tag */
     font-size: .7rem;
     font-weight: 700;
     padding: .12rem .5rem;
@@ -342,34 +282,31 @@ h1, h2, h3, .h1, .h2, .h3, .h4, .h5 { font-family: var(--display); letter-spacin
     color: var(--leaf-dark);
 }
 
-/* Page content and footer */
+/* content and footer */
 .pg-content { flex: 1 0 auto; padding: 1.2rem 2rem 2.5rem; width: 100%; max-width: 1480px; }
 .pg-footer { padding: 1rem 2rem; font-size: .8rem; color: var(--muted); }
 
-/* Phones (screens up to 575px wide): less padding, hide the name and role in the top bar */
+/* phones */
 @media (max-width: 575.98px) {
     .pg-content { padding: 1rem 1rem 2rem; }
     .pg-top, .pg-footer { padding-left: 1rem; padding-right: 1rem; }
     .user-name, .role-tag { display: none; }
 }
 
+/* ---------- Dashboard: summary and fraud panels ---------- */
 
-/* =====================================================================================
-   5. DASHBOARD: SUMMARY PANEL AND FRAUD PANEL (dashboard.php)
-   ===================================================================================== */
-
-/* ---- The dark summary panel ("Net movement") ---- */
+/* summary panel */
 .hero {
     position: relative;
     overflow: hidden;
-    background: var(--ink);                     /* SUMMARY PANEL COLOUR */
+    background: var(--ink);
     color: var(--on-dark);
     border-radius: var(--r-lg);
     padding: 1.7rem 1.9rem 1.5rem;
     display: flex;
     flex-direction: column;
 }
-.hero::after {                                  /* the faint lime ring in the top-right corner (decoration) */
+.hero::after {                                  /* decorative ring */
     content: "";
     position: absolute;
     right: -90px;
@@ -380,32 +317,32 @@ h1, h2, h3, .h1, .h2, .h3, .h4, .h5 { font-family: var(--display); letter-spacin
     border: 46px solid color-mix(in srgb, var(--spark) 7%, transparent);
     pointer-events: none;
 }
-.hero-hello { color: var(--on-dark-muted); margin: 0 0 1.1rem; font-weight: 500; }   /* "Habari, Brian..." */
+.hero-hello { color: var(--on-dark-muted); margin: 0 0 1.1rem; font-weight: 500; }
 .hero-net { display: flex; flex-direction: column; margin-bottom: 1.2rem; }
-.hero-net-label { font-size: .85rem; color: var(--on-dark-muted); font-weight: 600; } /* "Net movement" */
-.hero-net-value {                               /* the big amount */
+.hero-net-label { font-size: .85rem; color: var(--on-dark-muted); font-weight: 600; }
+.hero-net-value {                               /* net amount */
     font-family: var(--display);
     font-weight: 700;
-    font-size: clamp(2.3rem, 1.3rem + 3.4vw, 4rem);   /* grows with the screen, between 2.3rem and 4rem */
+    font-size: clamp(2.3rem, 1.3rem + 3.4vw, 4rem);
     line-height: 1;
     letter-spacing: -.035em;
-    font-variant-numeric: tabular-nums;         /* all digits the same width */
+    font-variant-numeric: tabular-nums;
 }
 
-/* Money in / money out bar */
+/* in/out bar */
 .flow { display: flex; gap: 4px; height: 14px; margin-bottom: 1.2rem; }
 .flow span { display: block; height: 100%; border-radius: 999px; min-width: 6px; }
-.flow-in { background: var(--spark); }          /* money in part */
-.flow-out { background: var(--money-out-bar); } /* money out part */
+.flow-in { background: var(--spark); }
+.flow-out { background: var(--money-out-bar); }
 
-/* The row of small totals at the bottom of the panel */
+/* totals row */
 .hero-figures { display: flex; flex-wrap: wrap; gap: .9rem 1.8rem; margin-top: auto; font-size: .82rem; color: var(--on-dark-muted); font-weight: 500; }
 .hero-figures strong { display: block; color: var(--on-dark); font-size: 1.08rem; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: .1rem; }
-.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: .4rem; }   /* coloured dots before "Money in/out" */
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: .4rem; }   /* legend dots */
 .dot-in { background: var(--spark); }
 .dot-out { background: var(--money-out-bar); }
 
-/* ---- The fraud panel ("alerts need your review") ---- */
+/* fraud panel */
 .watch {
     background: var(--surface);
     border-radius: var(--r-lg);
@@ -415,45 +352,41 @@ h1, h2, h3, .h1, .h2, .h3, .h4, .h5 { font-family: var(--display); letter-spacin
     gap: 1rem;
     border: 1px solid var(--line);
 }
-.watch-alert { background: var(--watch-alert-bg); border-color: var(--watch-alert-border); }   /* when alerts are waiting: light red */
+.watch-alert { background: var(--watch-alert-bg); border-color: var(--watch-alert-border); }   /* pending alerts */
 .watch-head { display: flex; align-items: center; gap: 1rem; }
-.watch-count {                                  /* the big number of alerts */
+.watch-count {                                  /* alert count */
     font-family: var(--display);
     font-weight: 800;
     font-size: 4rem;
     line-height: .9;
     letter-spacing: -.04em;
-    color: var(--leaf);                         /* green when there are no alerts */
+    color: var(--leaf);
 }
-.watch-alert .watch-count { color: var(--red); }   /* red when alerts are waiting */
+.watch-alert .watch-count { color: var(--red); }
 .watch-title { font-family: var(--display); font-weight: 700; font-size: 1.15rem; line-height: 1.2; }
 .watch-sub { font-size: .8rem; color: var(--muted); margin-top: .2rem; }
 
-/* Low / Medium / High bar and its legend */
+/* risk split bar */
 .riskbar { display: flex; gap: 3px; height: 10px; }
 .riskbar span { border-radius: 999px; min-width: 4px; }
-.rb-low { background: var(--leaf); }            /* Low risk colour */
-.rb-med { background: var(--amber); }           /* Medium risk colour */
-.rb-high { background: var(--red); }            /* High risk colour */
+.rb-low { background: var(--leaf); }
+.rb-med { background: var(--amber); }
+.rb-high { background: var(--red); }
 .risk-legend { display: flex; flex-wrap: wrap; gap: .3rem 1rem; font-size: .82rem; color: var(--muted); font-weight: 600; }
 .risk-legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: .35rem; }
 
-/* Red "Review alerts" button */
+/* "Review alerts" button */
 .btn-alert { background: var(--red); border-color: var(--red); color: var(--on-dark); }
 .btn-alert:hover, .btn-alert:focus { background: var(--red-dark); border-color: var(--red-dark); color: var(--on-dark); }
 
-
-/* =====================================================================================
-   6. FLAGGED TRANSACTIONS: ALERT CARDS (flagged.php)
-   ===================================================================================== */
+/* ---------- Flagged transactions (flagged.php) ---------- */
 .alert-card { border: 1px solid var(--line); box-shadow: none; }
-.alert-card.is-high { border-color: var(--high-card-border); }   /* High-risk cards get a light red border */
+.alert-card.is-high { border-color: var(--high-card-border); }
 
-/* The score ring: a circle filled in proportion to the score.
-   conic-gradient paints --ring for score% of the circle and --ring-track for the rest. */
+/* score ring: --score (0-100) sets the filled share */
 .score-ring {
-    --score: 0;                                 /* set per card by flagged.php, e.g. style="--score: 40" */
-    --ring: var(--amber);                       /* Medium = amber ring */
+    --score: 0;                                 /* set inline by flagged.php */
+    --ring: var(--amber);
     flex: 0 0 64px;
     width: 64px;
     height: 64px;
@@ -462,8 +395,8 @@ h1, h2, h3, .h1, .h2, .h3, .h4, .h5 { font-family: var(--display); letter-spacin
     place-items: center;
     background: conic-gradient(var(--ring) calc(var(--score) * 1%), var(--ring-track) 0);
 }
-.is-high .score-ring { --ring: var(--red); }    /* High = red ring */
-.score-ring span {                              /* the white middle with the number */
+.is-high .score-ring { --ring: var(--red); }
+.score-ring span {                              /* inner circle */
     width: 50px;
     height: 50px;
     border-radius: 50%;
@@ -477,31 +410,27 @@ h1, h2, h3, .h1, .h2, .h3, .h4, .h5 { font-family: var(--display); letter-spacin
 }
 .score-ring strong { display: block; font-family: var(--display); font-size: 1.15rem; color: var(--text); }
 
-.alert-title { font-weight: 700; font-size: 1.02rem; line-height: 1.3; }   /* transaction details */
-.alert-amount { font-family: var(--display); font-size: 1.2rem; }        /* the amount */
+.alert-title { font-weight: 700; font-size: 1.02rem; line-height: 1.3; }
+.alert-amount { font-family: var(--display); font-size: 1.2rem; }
 
-/* "Why it was flagged" box */
+/* "Why it was flagged" */
 .why { background: var(--mist); border-radius: var(--r-md); padding: .8rem 1rem; font-size: .88rem; }
 .why-label { font-weight: 700; margin-bottom: .3rem; }
 .why ul { padding-left: 1.1rem; }
 .why li { margin-bottom: .15rem; }
 
-
-/* =====================================================================================
-   7. SHARED COMPONENTS (used on many pages)
-   Bootstrap classes such as .btn, .card and .table are restyled here.
-   ===================================================================================== */
+/* ---------- Components (Bootstrap overrides) ---------- */
 
 /* ---- Buttons ---- */
-.btn { border-radius: 10px; font-weight: 600; padding: .5rem 1rem; }     /* every button */
-.btn-sm { border-radius: 8px; padding: .3rem .7rem; }                    /* small buttons */
+.btn { border-radius: 10px; font-weight: 600; padding: .5rem 1rem; }
+.btn-sm { border-radius: 8px; padding: .3rem .7rem; }
 
-/* Main green button, e.g. "Upload & Analyse", "Log in" */
+/* primary button */
 .btn-pg { background: var(--leaf); border-color: var(--leaf); color: var(--on-dark); }
 .btn-pg:hover, .btn-pg:focus, .btn-pg:active { background: var(--leaf-dark) !important; border-color: var(--leaf-dark) !important; color: var(--on-dark) !important; }
 .btn-pg:disabled { background: var(--leaf); border-color: var(--leaf); color: var(--on-dark); opacity: .7; }
 
-/* Green outline button, e.g. "Load sample CSV". Bootstrap reads these --bs-btn-... settings. */
+/* green outline button */
 .btn-outline-success {
     --bs-btn-color: var(--leaf-dark);
     --bs-btn-border-color: var(--outline-btn-border);
@@ -510,55 +439,55 @@ h1, h2, h3, .h1, .h2, .h3, .h4, .h5 { font-family: var(--display); letter-spacin
     --bs-btn-active-bg: var(--leaf-dark);
     --bs-btn-active-border-color: var(--leaf-dark);
 }
-/* Red button, e.g. "Confirm" on a fraud alert */
+/* danger button */
 .btn-danger { --bs-btn-bg: var(--red); --bs-btn-border-color: var(--red); --bs-btn-hover-bg: var(--red-dark); --bs-btn-hover-border-color: var(--red-dark); }
 
-/* Helper classes used in the HTML */
-.text-pg { color: var(--leaf) !important; }            /* green text */
-.bg-pg-soft { background: var(--leaf-soft) !important; }   /* light green background */
+/* utilities */
+.text-pg { color: var(--leaf) !important; }
+.bg-pg-soft { background: var(--leaf-soft) !important; }
 
-/* ---- Forms: text boxes, drop-downs, check boxes ---- */
+/* forms */
 .form-control, .form-select { border-radius: 10px; border-color: var(--input-border); padding: .5rem .8rem; }
-.form-select { padding-right: 2.3rem; }                /* room for the drop-down arrow */
+.form-select { padding-right: 2.3rem; }
 .form-select-sm { padding-right: 2rem !important; }
 .form-control-sm, .form-select-sm { padding: .3rem .6rem; border-radius: 8px; }
-/* Box you are typing in: green border and a soft green glow */
+/* focus */
 .form-control:focus, .form-select:focus, .form-check-input:focus {
     border-color: var(--leaf);
     box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--leaf) 16%, transparent);
 }
-.form-check-input:checked { background-color: var(--leaf); border-color: var(--leaf); }   /* ticked check box / switch */
+.form-check-input:checked { background-color: var(--leaf); border-color: var(--leaf); }
 .form-label { font-weight: 600; font-size: .88rem; }
 
-/* ---- Cards (the white boxes) ---- */
+/* cards */
 .card { border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); box-shadow: none; }
-.card-header { background: transparent; border-bottom: 0; font-family: var(--display); font-weight: 700; font-size: 1.05rem; padding: 1.1rem 1.25rem .3rem; }   /* card title */
+.card-header { background: transparent; border-bottom: 0; font-family: var(--display); font-weight: 700; font-size: 1.05rem; padding: 1.1rem 1.25rem .3rem; }
 .card-body { padding: 1.1rem 1.25rem; }
 .card-footer { background: transparent; border-top: 1px solid var(--line); padding: .9rem 1.25rem; }
-/* Keep the rounded corners when a table fills the card */
+/* rounded corners on full-width tables */
 .card > .table-responsive:last-child { border-bottom-left-radius: var(--r-md); border-bottom-right-radius: var(--r-md); }
 .card > .table-responsive:first-child { border-top-left-radius: var(--r-md); border-top-right-radius: var(--r-md); }
 
-/* Small number cards with an icon (Admin overview) */
+/* KPI cards (admin overview) */
 .kpi .kpi-icon { width: 44px; height: 44px; flex: 0 0 44px; border-radius: 12px; display: grid; place-items: center; font-size: 1.25rem; }
 .kpi .kpi-value { font-family: var(--display); font-size: 1.45rem; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 .kpi .kpi-label { font-size: .82rem; color: var(--muted); font-weight: 600; }
 
-/* ---- Tables ---- */
+/* tables */
 .table { --bs-table-bg: transparent; margin-bottom: 0; }
-.table > :not(caption) > * > * { padding: .7rem 1.25rem; border-bottom-color: var(--row-line); }   /* every cell */
-.table-sm > :not(caption) > * > * { padding: .55rem 1.25rem; }                                      /* smaller tables */
-.table thead th { font-size: .8rem; color: var(--muted); font-weight: 600; white-space: nowrap; border-bottom: 1px solid var(--line); background: transparent; }   /* column headings */
+.table > :not(caption) > * > * { padding: .7rem 1.25rem; border-bottom-color: var(--row-line); }
+.table-sm > :not(caption) > * > * { padding: .55rem 1.25rem; }
+.table thead th { font-size: .8rem; color: var(--muted); font-weight: 600; white-space: nowrap; border-bottom: 1px solid var(--line); background: transparent; }
 .table tbody tr:last-child td { border-bottom: 0; }
-.table tbody tr:hover > * { background-color: var(--row-hover); }   /* row under the mouse */
+.table tbody tr:hover > * { background-color: var(--row-hover); }
 .table td { vertical-align: middle; }
 
-.amount-in { color: var(--leaf-dark); font-weight: 700; font-variant-numeric: tabular-nums; }   /* "+65,000.00" in green */
-.amount-out { color: var(--money-out); font-weight: 700; font-variant-numeric: tabular-nums; }  /* "-48,000.00" in red */
-.row-high > * { background: var(--row-high) !important; }       /* High-risk row */
-.row-medium > * { background: var(--row-medium) !important; }   /* Medium-risk row */
+.amount-in { color: var(--leaf-dark); font-weight: 700; font-variant-numeric: tabular-nums; }
+.amount-out { color: var(--money-out); font-weight: 700; font-variant-numeric: tabular-nums; }
+.row-high > * { background: var(--row-high) !important; }
+.row-medium > * { background: var(--row-medium) !important; }
 
-/* Rule codes such as "R2" next to an alert: dark chip with lime text */
+/* rule code chips */
 .rule-chip {
     display: inline-block;
     font-size: .74rem;
@@ -571,30 +500,30 @@ h1, h2, h3, .h1, .h2, .h3, .h4, .h5 { font-family: var(--display); letter-spacin
     white-space: nowrap;
 }
 
-/* ---- Badges: small labels such as Low / Medium / High, Pending / Confirmed ---- */
+/* badges */
 .badge { font-weight: 700; border-radius: 6px; padding: .34em .65em; font-size: .76em; }
-.badge.bg-success { background: var(--leaf-soft) !important; color: var(--leaf-dark); }                /* Low, Active, Analysed */
-.badge.bg-danger { background: var(--red-soft) !important; color: var(--badge-red-text); }             /* High, Confirmed */
-.badge.bg-warning { background: var(--amber-soft) !important; color: var(--badge-amber-text) !important; }   /* Medium, Pending */
-.badge.bg-secondary { background: var(--badge-grey-bg) !important; color: var(--badge-grey-text); }    /* Dismissed, Inactive */
+.badge.bg-success { background: var(--leaf-soft) !important; color: var(--leaf-dark); }
+.badge.bg-danger { background: var(--red-soft) !important; color: var(--badge-red-text); }
+.badge.bg-warning { background: var(--amber-soft) !important; color: var(--badge-amber-text) !important; }
+.badge.bg-secondary { background: var(--badge-grey-bg) !important; color: var(--badge-grey-text); }
 
-/* ---- Messages at the top of a page (Bootstrap "alert") ---- */
+/* flash messages */
 .alert { border-radius: var(--r-md); border: 0; font-weight: 500; }
-.alert-success { background: var(--leaf-soft); color: var(--success-text); }   /* green: it worked */
-.alert-danger { background: var(--red-soft); color: var(--danger-text); }       /* red: error */
-.alert-warning { background: var(--amber-soft); color: var(--warning-text); }   /* amber: warning */
-.alert-info { background: var(--info-bg); color: var(--info-text); }           /* blue: information */
+.alert-success { background: var(--leaf-soft); color: var(--success-text); }
+.alert-danger { background: var(--red-soft); color: var(--danger-text); }
+.alert-warning { background: var(--amber-soft); color: var(--warning-text); }
+.alert-info { background: var(--info-bg); color: var(--info-text); }
 
-/* ---- Tabs on the Flagged page (Pending / Confirmed / Dismissed / All) ---- */
+/* tabs (flagged page) */
 .nav-pills .nav-link { color: var(--muted); font-weight: 600; border-radius: 999px; }
-.nav-pills .nav-link.active { background: var(--ink); color: var(--on-dark); }   /* the open tab */
+.nav-pills .nav-link.active { background: var(--ink); color: var(--on-dark); }
 
-/* ---- Drop-down menus (e.g. the user menu) ---- */
+/* dropdowns */
 .dropdown-menu { border-radius: var(--r-md); border-color: var(--line); box-shadow: 0 14px 34px color-mix(in srgb, var(--ink) 14%, transparent); padding: .4rem; }
 .dropdown-item { border-radius: 8px; padding: .45rem .7rem; }
 .dropdown-item:active { background: var(--leaf); }
 
-/* ---- Page numbers under long tables ---- */
+/* pagination */
 .pagination {
     --bs-pagination-active-bg: var(--ink);
     --bs-pagination-active-border-color: var(--ink);
@@ -603,28 +532,25 @@ h1, h2, h3, .h1, .h2, .h3, .h4, .h5 { font-family: var(--display); letter-spacin
     --bs-pagination-border-color: var(--line);
 }
 
-/* ---- Chart area height on the dashboard ---- */
+/* chart container */
 .chart-box { position: relative; height: 300px; }
 
-/* ---- Upload box (dashed border) on the Upload page ---- */
+/* upload drop zone */
 .drop-zone { border: 2px dashed var(--drop-border); border-radius: var(--r-lg); padding: 2.2rem 1rem; text-align: center; background: var(--drop-bg); }
 .drop-zone:hover { border-color: var(--leaf); background: var(--leaf-soft); }
-.drop-zone i { font-size: 2.4rem; color: var(--leaf); }   /* the big PDF icon */
+.drop-zone i { font-size: 2.4rem; color: var(--leaf); }
 
-/* ---- Green / red dots on the System Status page ---- */
+/* status dots (admin/status.php) */
 .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-.status-dot.ok { background: var(--leaf); box-shadow: 0 0 0 4px var(--leaf-soft); }   /* check passed */
-.status-dot.bad { background: var(--red); box-shadow: 0 0 0 4px var(--red-soft); }    /* check failed */
+.status-dot.ok { background: var(--leaf); box-shadow: 0 0 0 4px var(--leaf-soft); }
+.status-dot.bad { background: var(--red); box-shadow: 0 0 0 4px var(--red-soft); }
 
+/* ---------- Login, register, installer (body.guest) ---------- */
+body.guest { background: var(--ink); }
 
-/* =====================================================================================
-   8. LOGIN, REGISTER AND INSTALLER PAGES (body class "guest")
-   ===================================================================================== */
-body.guest { background: var(--ink); }          /* LOGIN PAGE BACKGROUND */
-
-/* Centres the content on the screen */
+/* centred layout */
 .auth-wrap { min-height: 100vh; display: grid; place-items: center; padding: 1.5rem; position: relative; overflow: hidden; }
-.auth-wrap::before {                            /* faint lime ring in the bottom-left corner (decoration) */
+.auth-wrap::before {                            /* decorative ring */
     content: "";
     position: absolute;
     left: -160px;
@@ -635,12 +561,12 @@ body.guest { background: var(--ink); }          /* LOGIN PAGE BACKGROUND */
     border: 80px solid color-mix(in srgb, var(--spark) 6%, transparent);
     pointer-events: none;
 }
-.auth-card { width: 100%; max-width: 440px; border-radius: var(--r-lg); border: 0; position: relative; }   /* the white form box */
+.auth-card { width: 100%; max-width: 440px; border-radius: var(--r-lg); border: 0; position: relative; }
 
-/* PesaGuard name and logo */
+/* brand block */
 .auth-brand { color: var(--on-dark); text-align: center; margin-bottom: 1.25rem; position: relative; }
 .auth-brand h1 { font-weight: 700; }
-.auth-brand .display-5 {                        /* lime logo square */
+.auth-brand .display-5 {
     width: 60px;
     height: 60px;
     margin: 0 auto .8rem;
@@ -651,27 +577,27 @@ body.guest { background: var(--ink); }          /* LOGIN PAGE BACKGROUND */
     place-items: center;
     font-size: 1.8rem;
 }
-.guest-alert { max-width: 440px; }              /* messages on the login page */
+.guest-alert { max-width: 440px; }
 
-/* Login page layout: information on the left, form on the right */
+/* login: info left, form right */
 .auth-split { position: relative; display: grid; grid-template-columns: 1.15fr 1fr; gap: 4rem; align-items: center; width: 100%; max-width: 1040px; }
 .auth-hero { color: var(--on-dark); }
 .auth-hero .auth-brand { margin-bottom: 1.6rem; }
-.auth-hero .auth-brand h1 { font-size: clamp(2.4rem, 1.6rem + 2.6vw, 3.6rem); line-height: 1; letter-spacing: -.035em; }   /* big "PesaGuard" */
+.auth-hero .auth-brand h1 { font-size: clamp(2.4rem, 1.6rem + 2.6vw, 3.6rem); line-height: 1; letter-spacing: -.035em; }
 .auth-hero .auth-brand .opacity-75 { font-size: 1.05rem; margin-top: .5rem; }
 
-/* The three feature lines with icons */
+/* feature list */
 .auth-points { list-style: none; padding: 0; margin: 0 0 2rem; display: grid; gap: .9rem; max-width: 46ch; }
 .auth-points li { display: flex; gap: .85rem; align-items: flex-start; color: var(--login-text); line-height: 1.4; }
 .auth-points .bi { flex: 0 0 34px; height: 34px; border-radius: 10px; background: var(--ink-2); color: var(--spark); display: grid; place-items: center; font-size: 1rem; }
 
-/* White "M-PESA" badge (shows assets/img/mpesa-logo.png if that file exists) */
+/* M-PESA badge (assets/img/mpesa-logo.png when present) */
 .auth-partner { display: inline-flex; align-items: center; gap: .8rem; padding: .6rem 1rem; border-radius: 14px; background: var(--surface); color: var(--partner-text); font-size: .84rem; font-weight: 600; }
-.auth-partner img { height: 36px; width: auto; display: block; }   /* logo height */
-.partner-text { font-family: var(--display); font-weight: 800; color: var(--leaf-dark); font-size: 1.1rem; }   /* "M-PESA" text */
+.auth-partner img { height: 36px; width: auto; display: block; }
+.partner-text { font-family: var(--display); font-weight: 800; color: var(--leaf-dark); font-size: 1.1rem; }
 .auth-form .auth-card { margin-left: auto; }
 
-/* Phones and small tablets (up to 860px): one column, feature lines hidden */
+/* small screens */
 @media (max-width: 860px) {
     .auth-split { grid-template-columns: 1fr; gap: 1.5rem; max-width: 440px; }
     .auth-points { display: none; }
@@ -680,10 +606,7 @@ body.guest { background: var(--ink); }          /* LOGIN PAGE BACKGROUND */
     .auth-hero .auth-brand { margin-bottom: 1rem; }
 }
 
-
-/* =====================================================================================
-   9. PRINTING (Ctrl + P): hide the menus and print the summary panel in black on white
-   ===================================================================================== */
+/* ---------- Print ---------- */
 @media print {
     .pg-side, .pg-top, .pg-footer, .no-print { display: none !important; }
     body { background: #fff; }

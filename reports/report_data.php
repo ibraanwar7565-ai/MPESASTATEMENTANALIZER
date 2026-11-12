@@ -5,9 +5,9 @@
  */
 function build_report(string $type, ReportService $rs, PDO $db): array
 {
-    // $n formats a number with 2 decimals and thousands separators, e.g. 1234.5 becomes "1,234.50".
+    // 1234.5 -> "1,234.50"
     $n = fn($v) => number_format((float) $v, 2);
-    // One case per report. Each section is [heading, column titles, rows, which columns hold numbers].
+    // Each section: [heading, headers, rows, numeric column indexes]
     switch ($type) {
         case 'flagged':
             $names = ReportService::ruleNames($db);

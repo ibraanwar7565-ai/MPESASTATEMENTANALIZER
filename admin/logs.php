@@ -4,10 +4,10 @@
  * with search and 50 rows per page.
  */
 require_once __DIR__ . '/../config/config.php';
-// Admin only: anyone else gets "Access denied" and is sent to the dashboard.
+// Admins only
 $admin = require_admin();
 
-// Optional search in the action text, the user's name or the IP address.
+// Search by action, user name or IP
 $search = trim($_GET['q'] ?? '');
 $params = [];
 $where = '';

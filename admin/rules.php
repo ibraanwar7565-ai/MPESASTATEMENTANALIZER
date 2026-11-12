@@ -1,20 +1,20 @@
 <?php
 /**
  * Fraud rules (admin only): change each rule's name, threshold, weight and on/off switch.
- * FraudEngine reads these values from the database, so changing a rule needs no code change.
+ * FraudEngine reads them from the database at run time.
  */
 require_once __DIR__ . '/../config/config.php';
-// Admin only: anyone else gets "Access denied" and is sent to the dashboard.
+// Admins only
 $admin = require_admin();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
-    // One prepared UPDATE, run once for every rule in the form.
+    // One UPDATE per rule
     $st = db()->prepare('UPDATE fraud_rules SET rule_name = ?, threshold = ?, weight = ?, is_active = ? WHERE rule_id = ?');
     $errors = 0;
     foreach ((array) ($_POST['rules'] ?? []) as $id => $r) {
         $name = trim($r['rule_name'] ?? '');
-        // Validate: the threshold must be a positive number and the weight a whole number from 0 to 100.
+        // threshold >= 0, weight 0-100
         $threshold = filter_var($r['threshold'] ?? '', FILTER_VALIDATE_FLOAT);
         $weight = filter_var($r['weight'] ?? '', FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => 100]]);
         if ($name === '' || $threshold === false || $threshold < 0 || $weight === false) {
@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         flash('success', 'Fraud rules saved. Use "Re-score all statements" on the Admin overview to apply them to existing statements.');
     }
-    // "Save and re-score" also re-runs the rules on every stored statement.
+    // Optionally re-score all statements with the new values
     if (isset($_POST['rescore'])) {
         $r = (new StatementImporter(db()))->rescore();
         flash('success', "Re-scored {$r['statements']} statement(s): {$r['flagged']} transaction(s) now flagged.");
@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $rules = db()->query('SELECT * FROM fraud_rules ORDER BY rule_code')->fetchAll();
-// What each threshold means, shown next to the rule.
+// Threshold descriptions
 $help = [
     'R1' => 'Number of standard deviations above the average outgoing amount.',
     'R2' => 'Hour of the day; transfers before this hour are flagged.',

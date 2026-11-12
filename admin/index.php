@@ -4,7 +4,7 @@
  * recent activity, and the "Re-score all statements" button.
  */
 require_once __DIR__ . '/../config/config.php';
-// Admin only: anyone else gets "Access denied" and is sent to the dashboard.
+// Admins only
 $admin = require_admin();
 
 // Re-run categorisation and fraud scoring on every stored statement
@@ -16,9 +16,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rescore'])) {
     redirect('admin/index.php');
 }
 
-// $q runs a query that returns one number.
+// Single-value query helper
 $q = fn(string $sql) => db()->query($sql)->fetchColumn();
-// The six totals at the top: [label, value, icon, link].
+// [label, value, icon, link]
 $stats = [
     ['Users', $q('SELECT COUNT(*) FROM users'), 'people', 'admin/users.php'],
     ['Statements', $q('SELECT COUNT(*) FROM statements'), 'file-earmark-text', 'statements/index.php'],

@@ -1,21 +1,21 @@
 <?php
 /**
- * functions.php: small helper functions used by every page.
+ * Shared helper functions.
  *
- * Sections, top to bottom:
+ * Sections:
  *  - URLs and redirects
- *  - Output: e() makes text safe to print, money() formats KES amounts
- *  - CSRF protection: a secret token in every form
- *  - Flash messages: one-time messages shown on the next page
- *  - Authentication: who is logged in, and the page guards for users and admins
+ *  - Output escaping and money formatting
+ *  - CSRF tokens
+ *  - Flash messages
+ *  - Authentication and page guards
  *  - Activity log
- *  - SQL helpers that work on both MySQL and SQLite (used by the tests)
- *  - Badges, and access control: each user sees only their own data
+ *  - SQL helpers (MySQL / SQLite)
+ *  - Badges and data-access scope
  */
 
 // ---------- Base URL (works on a Laragon virtual host or in a sub-folder) ----------
-// Works out the folder the system lives in: "/mpesa-analyzer" on http://localhost/mpesa-analyzer,
-// or "" on http://mpesa-analyzer.test. Every link is built from it, so links work in both cases.
+// Base path: "/mpesa-analyzer" under localhost, "" on a virtual host
+// such as http://mpesa-analyzer.test. All links are built from it.
 function base_url(): string
 {
     static $base = null;
@@ -31,13 +31,13 @@ function base_url(): string
     return $base;
 }
 
-// Builds a link inside the system, e.g. url('flagged.php') gives /mpesa-analyzer/flagged.php
+// url('flagged.php') -> /mpesa-analyzer/flagged.php
 function url(string $path = ''): string
 {
     return base_url() . '/' . ltrim($path, '/');
 }
 
-// Sends the browser to another page and stops this script. "never" means the function never returns.
+// Redirect and stop
 function redirect(string $path): never
 {
     header('Location: ' . url($path));
@@ -45,29 +45,29 @@ function redirect(string $path): never
 }
 
 // ---------- Output ----------
-// e() = escape. Turns characters such as < > " & into safe codes before printing data,
-// so text typed by a user (or found in a statement) can never run as HTML or JavaScript (XSS protection).
+// Escape for HTML output (XSS protection).
+// Used on every value printed in a page.
 function e(?string $value): string
 {
     return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// Formats an amount as Kenya shillings, e.g. 1234.5 becomes "KES 1,234.50".
+// 1234.5 -> "KES 1,234.50"
 function money(float|string|null $amount): string
 {
     return 'KES ' . number_format((float) $amount, 2);
 }
 
-// The current date and time in the format MySQL stores, e.g. 2026-10-15 14:00:00
+// MySQL DATETIME format
 function now(): string
 {
     return date('Y-m-d H:i:s');
 }
 
 // ---------- CSRF protection ----------
-// CSRF = Cross-Site Request Forgery: another website secretly submitting a form using your logged-in session.
-// Defence: each session gets a random secret token. Every form sends it back, and verify_csrf() checks it.
-// A fake form on another site cannot know the token, so its request is rejected.
+// CSRF protection: one random token per session, sent with every form
+// and checked by verify_csrf() before any POST is processed.
+// A form posted from another site cannot know the token.
 function csrf_token(): string
 {
     if (empty($_SESSION['csrf_token'])) {
@@ -76,14 +76,14 @@ function csrf_token(): string
     return $_SESSION['csrf_token'];
 }
 
-// The hidden <input> that carries the token. Every form in the system prints this.
+// Hidden input carrying the token
 function csrf_field(): string
 {
     return '<input type="hidden" name="csrf_token" value="' . e(csrf_token()) . '">';
 }
 
-// Called at the start of every form handler. hash_equals() compares the two tokens in constant time,
-// so an attacker cannot guess the token by measuring how long the comparison takes.
+// Called first in every POST handler. hash_equals() is a constant-time
+// comparison (avoids timing attacks).
 function verify_csrf(): void
 {
     $sent = $_POST['csrf_token'] ?? '';
@@ -94,7 +94,7 @@ function verify_csrf(): void
 }
 
 // ---------- Flash messages ----------
-// Flash message: saved in the session now, shown once on the next page (e.g. "Category updated."), then removed.
+// One-time message shown on the next page
 function flash(string $type, string $message): void
 {
     $_SESSION['flash'][] = ['type' => $type, 'message' => $message];
@@ -108,8 +108,8 @@ function flashes(): array
 }
 
 // ---------- Authentication ----------
-// Returns the logged-in user (a row from the users table), or null if nobody is logged in.
-// "static" means the database is asked only once per page. A deactivated account is logged out at once.
+// Logged-in user row, or null. Cached for the request;
+// an account set to Inactive is logged out immediately.
 function current_user(): ?array
 {
     static $user = false;
@@ -128,7 +128,7 @@ function current_user(): ?array
     return $user;
 }
 
-// Page guard: placed at the top of every page that needs a logged-in user. Visitors are sent to the login page.
+// Page guard: redirects visitors to the login page
 function require_login(): array
 {
     $user = current_user();
@@ -139,7 +139,7 @@ function require_login(): array
     return $user;
 }
 
-// Page guard for admin pages: a normal user gets "Access denied" (HTTP 403) and is sent to the dashboard.
+// Admin page guard: 403 and redirect for non-admins
 function require_admin(): array
 {
     $user = require_login();
@@ -151,15 +151,15 @@ function require_admin(): array
     return $user;
 }
 
-// True when the logged-in user is an administrator.
+// True for administrators
 function is_admin(): bool
 {
     return (current_user()['role'] ?? '') === 'Admin';
 }
 
 // ---------- Activity log ----------
-// Writes one line to the activity_log table: who did what, from which IP address, and when.
-// Used for logins, failed logins (the lockout counts these), uploads, reviews and every admin change.
+// Audit trail entry: user, action, IP address, time.
+// Failed logins are logged too; the login lockout counts them.
 function log_activity(?int $userId, string $action): void
 {
     $st = db()->prepare("INSERT INTO activity_log (user_id, action, ip_address, created_at) VALUES (?, ?, ?, ?)");
@@ -167,29 +167,29 @@ function log_activity(?int $userId, string $action): void
 }
 
 // ---------- SQL helpers (MySQL in production, SQLite in automated tests) ----------
-// MySQL and SQLite name their date functions differently. These helpers return the right SQL for each,
-// so the same reports work on MySQL (the real system) and SQLite (the automated tests).
-// sql_month: groups a date by month, e.g. 2026-10-15 becomes "2026-10".
+// Date functions differ between MySQL and SQLite (tests),
+// so these return the right SQL for the active driver.
+// sql_month: 2026-10-15 -> "2026-10"
 function sql_month(string $col): string
 {
     return DB_DRIVER === 'sqlite' ? "strftime('%Y-%m', $col)" : "DATE_FORMAT($col, '%Y-%m')";
 }
 
-// sql_hour: the hour of a date and time, 0 to 23.
+// sql_hour: hour of day, 0-23
 function sql_hour(string $col): string
 {
     return DB_DRIVER === 'sqlite' ? "CAST(strftime('%H', $col) AS INTEGER)" : "HOUR($col)";
 }
 
 // ---------- Misc ----------
-// Coloured label for a risk level: Low = green, Medium = amber, High = red.
+// Low = green, Medium = amber, High = red
 function risk_badge(string $level): string
 {
     $cls = ['High' => 'danger', 'Medium' => 'warning text-dark', 'Low' => 'success'][$level] ?? 'secondary';
     return '<span class="badge bg-' . $cls . '">' . e($level) . '</span>';
 }
 
-// Coloured label for a review or account status: Pending, Confirmed, Dismissed, Active, Inactive.
+// Review / account status badge
 function status_badge(string $status): string
 {
     $cls = ['Pending' => 'warning text-dark', 'Confirmed' => 'danger', 'Dismissed' => 'secondary',
@@ -210,12 +210,12 @@ function user_statements(array $user): array
 }
 
 /**
- * Access control. Builds the extra WHERE conditions that limit a query to what this user may see:
- *  - a normal user: only rows from their own statements ("s.user_id = ?")
- *  - an administrator: everything
- *  - if one statement is chosen: only that statement
- * The values go into $params and are filled in through ? placeholders, never pasted into the SQL.
- * Example result for a normal user: " AND s.user_id = ? AND s.statement_id = ?"
+ * Access control: extra WHERE conditions for the current user.
+ *  - normal user: own statements only ("s.user_id = ?")
+ *  - administrator: no restriction
+ *  - optional: a single statement
+ * Values are appended to $params and bound as ? placeholders.
+ * Example: " AND s.user_id = ? AND s.statement_id = ?"
  */
 function scope_sql(array $user, ?int $statementId, array &$params, string $alias = 's'): string
 {

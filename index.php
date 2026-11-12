@@ -1,7 +1,7 @@
 <?php
 /**
- * Home address (http://localhost/mpesa-analyzer/):
- * logged-in users go to the dashboard, everyone else to the login page.
+ * Entry point:
+ * dashboard when logged in, otherwise the login page.
  */
 require_once __DIR__ . '/config/config.php';
 

@@ -1,16 +1,16 @@
 <?php
 /**
- * Statements page: lists the uploaded statements (admins see everyone's) and deletes a statement.
+ * Statements list (admins see all) and delete.
  */
 require_once __DIR__ . '/../config/config.php';
-// Stop here unless someone is logged in (otherwise: go to the login page).
+// Requires login
 $user = require_login();
 
 // Delete a statement together with its transactions and flags (ON DELETE CASCADE)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
     verify_csrf();
     $id = (int) $_POST['delete'];
-    // A normal user can only delete their own statement: the extra "AND user_id = ?" makes sure of it.
+    // Non-admins can only delete their own statements
     $sql = 'DELETE FROM statements WHERE statement_id = ?' . ($user['role'] === 'Admin' ? '' : ' AND user_id = ?');
     $st = db()->prepare($sql);
     $st->execute($user['role'] === 'Admin' ? [$id] : [$id, $user['user_id']]);
@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
     redirect('statements/index.php');
 }
 
-// List the statements: all of them for an admin, only their own for a user, newest first.
+// Newest first; non-admins see only their own
 $params = [];
 $where = $user['role'] === 'Admin' ? '' : 'WHERE s.user_id = ?';
 if ($where) {

@@ -1,22 +1,22 @@
 <?php
 /**
- * Log out: records it in the activity log, empties the session,
- * deletes the session cookie in the browser and ends the session.
+ * Logout: audit entry, clear the session,
+ * expire the cookie and destroy the session.
  */
 require_once __DIR__ . '/../config/config.php';
 
 if ($user = current_user()) {
     log_activity((int) $user['user_id'], 'Logged out');
 }
-// Forget everything stored for this user.
+// Clear session data
 $_SESSION = [];
-// Expire the session cookie in the browser.
+// Expire the session cookie
 if (ini_get('session.use_cookies')) {
     $p = session_get_cookie_params();
     setcookie(session_name(), '', time() - 42000, $p['path'], $p['domain'], $p['secure'], $p['httponly']);
 }
 session_destroy();
-// Start a fresh, empty session only to carry the "You have logged out." message.
+// New empty session for the logged-out message
 session_start();
 flash('info', 'You have logged out.');
 redirect('auth/login.php');

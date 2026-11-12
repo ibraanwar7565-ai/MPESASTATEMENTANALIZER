@@ -1,13 +1,13 @@
 <?php
 /**
- * ReportService: all the read-only SQL behind the dashboard, the charts and the reports.
- * Every query goes through scope(), so it only covers the logged-in user's statements
- * (administrators see all), an optional single statement and an optional date range.
- * Each public function answers one question, e.g. summary() = "how much came in and went out?"
+ * ReportService: read-only queries for the dashboard, charts and reports.
+ * Every query goes through scope(): the user's own statements
+ * (administrators see all), an optional statement and an optional date range.
+ * One public method per dashboard widget or report.
  */
 class ReportService
 {
-    // "private PDO $db" receives the value and stores it in the object in one step (PHP 8 shorthand).
+    // $statementId, $from and $to narrow every query
     public function __construct(private PDO $db, private array $user, private ?int $statementId = null,
                                 private ?string $from = null, private ?string $to = null)
     {
@@ -17,7 +17,7 @@ class ReportService
         $this->to = $valid($to);
     }
 
-    // Runs one prepared query with its ? values and returns all the rows.
+    // Prepared query helper
     private function run(string $sql, array $params = []): array
     {
         $st = $this->db->prepare($sql);
@@ -25,7 +25,7 @@ class ReportService
         return $st->fetchAll();
     }
 
-    // The WHERE conditions every query must have: the user's own data (scope_sql) plus the optional dates.
+    // User scope (scope_sql) plus the optional date range
     private function scope(array &$params): string
     {
         $sql = scope_sql($this->user, $this->statementId, $params);
@@ -40,8 +40,8 @@ class ReportService
         return $sql;
     }
 
-    // Totals for the dashboard: number of transactions, money in, money out, charges, flagged count,
-    // first and last date, alerts still pending review, and the closing balance (balance of the latest transaction).
+    // Dashboard totals: count, money in/out, charges, flagged, date range,
+    // pending reviews and closing balance (balance of the latest transaction).
     public function summary(): array
     {
         $p = [];
@@ -70,7 +70,7 @@ class ReportService
         return $row;
     }
 
-    // Money in and money out per month (the cash-flow chart and the monthly report).
+    // Cash flow per month
     public function monthly(): array
     {
         $p = [];
@@ -84,7 +84,7 @@ class ReportService
                            WHERE 1 = 1 $w GROUP BY $m ORDER BY month", $p);
     }
 
-    // Total per category (the spending doughnut). Transactions with no category count as "Uncategorised".
+    // Totals per category (uncategorised grouped together)
     public function byCategory(string $direction = 'OUT'): array
     {
         $p = [$direction];
@@ -97,7 +97,7 @@ class ReportService
                            GROUP BY COALESCE(c.name, 'Uncategorised') ORDER BY total DESC", $p);
     }
 
-    // Where most money goes: outgoing payments grouped by recipient number (or by details if there is no number).
+    // Outgoing totals per recipient (details used when there is no number)
     public function topRecipients(int $limit = 10): array
     {
         $p = [];
@@ -124,7 +124,7 @@ class ReportService
                            WHERE c.name = 'Charges' $w GROUP BY t.details ORDER BY total DESC", $p);
     }
 
-    // How many outgoing transactions are Low, Medium and High (the risk chart and the fraud panel).
+    // Low / Medium / High counts of outgoing transactions
     public function riskDistribution(): array
     {
         $p = [];
@@ -139,7 +139,7 @@ class ReportService
         return $out;
     }
 
-    // Outgoing transactions per hour of the day, 0 to 23 (shows night-time activity, rule R2).
+    // Outgoing transactions per hour, 0-23
     public function hourly(): array
     {
         $p = [];
@@ -162,8 +162,8 @@ class ReportService
         $w = $this->scope($p);
         $having = '';
         $hp = [];
-        // One transaction can break several rules, so its flags are grouped into one row;
-        // GROUP_CONCAT lists the rule codes, e.g. "R2,R3". HAVING filters the grouped rows by review status.
+        // Flags are grouped per transaction; GROUP_CONCAT lists the rule codes
+        // (e.g. "R2,R3") and HAVING filters by review status.
         if (in_array($status, ['Pending', 'Confirmed', 'Dismissed'], true)) {
             $having .= ' AND MAX(f.review_status) = ?';
             $hp[] = $status;
@@ -188,7 +188,7 @@ class ReportService
                            ORDER BY t.risk_score DESC, t.completion_time DESC LIMIT " . (int) $limit, array_merge($p, $hp));
     }
 
-    // Every transaction with its category name (the full transaction report).
+    // Full transaction list with category names
     public function transactions(int $limit = 5000): array
     {
         $p = [];
