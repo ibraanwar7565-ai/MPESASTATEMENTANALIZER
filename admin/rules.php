@@ -7,23 +7,25 @@ require_once __DIR__ . '/../config/config.php';
 // Admins only
 $admin = require_admin();
 
+// Save the rules table
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    verify_csrf();
-    // One UPDATE per rule
+    verify_csrf();   // reject forms without a valid token
+    // Prepared once, executed for each rule
     $st = db()->prepare('UPDATE fraud_rules SET rule_name = ?, threshold = ?, weight = ?, is_active = ? WHERE rule_id = ?');
-    $errors = 0;
-    foreach ((array) ($_POST['rules'] ?? []) as $id => $r) {
+    $errors = 0;                                               // rules that failed validation
+    foreach ((array) ($_POST['rules'] ?? []) as $id => $r) {   // rules[<rule_id>][field]
         $name = trim($r['rule_name'] ?? '');
         // threshold >= 0, weight 0-100
         $threshold = filter_var($r['threshold'] ?? '', FILTER_VALIDATE_FLOAT);
         $weight = filter_var($r['weight'] ?? '', FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => 100]]);
         if ($name === '' || $threshold === false || $threshold < 0 || $weight === false) {
             $errors++;
-            continue;
+            continue;   // skip this rule, save the others
         }
+        // unchecked switch is not posted, so is_active = 0
         $st->execute([mb_substr($name, 0, 100), $threshold, $weight, isset($r['is_active']) ? 1 : 0, (int) $id]);
     }
-    log_activity((int) $admin['user_id'], 'Updated fraud rules');
+    log_activity((int) $admin['user_id'], 'Updated fraud rules');   // one log entry per save
     if ($errors) {
         flash('warning', "$errors rule(s) were not saved: the weight must be 0-100 and the threshold a positive number.");
     } else {
@@ -31,14 +33,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     // Optionally re-score all statements with the new values
     if (isset($_POST['rescore'])) {
-        $r = (new StatementImporter(db()))->rescore();
+        $r = (new StatementImporter(db()))->rescore();   // re-categorise and re-score every statement
         flash('success', "Re-scored {$r['statements']} statement(s): {$r['flagged']} transaction(s) now flagged.");
     }
-    redirect('admin/rules.php');
+    redirect('admin/rules.php');   // Post/Redirect/Get
 }
 
+// Rules R1-R8 in code order
 $rules = db()->query('SELECT * FROM fraud_rules ORDER BY rule_code')->fetchAll();
-// Threshold descriptions
+// Threshold meaning, shown in the last column
 $help = [
     'R1' => 'Number of standard deviations above the average outgoing amount.',
     'R2' => 'Hour of the day; transfers before this hour are flagged.',
@@ -50,18 +53,21 @@ $help = [
     'R8' => 'Minutes between a Fuliza / M-Shwari loan and an outflow of 90% or more of it.',
 ];
 
-$pageTitle = 'Fraud rules';
-$active = 'admin';
+$pageTitle = 'Fraud rules';   // browser tab and top bar title
+$active = 'admin';            // highlights the Admin menu
 require APP_ROOT . '/includes/header.php';
 ?>
 <h1 class="h3 page-title">Fraud detection rules</h1>
+<?php // Score bands from config.php (MEDIUM_RISK, HIGH_RISK) ?>
 <p class="page-sub">Risk score = sum of the weights of the triggered rules (maximum 100). Low &lt; <?= MEDIUM_RISK ?>, Medium <?= MEDIUM_RISK ?>&ndash;<?= HIGH_RISK - 1 ?>, High &ge; <?= HIGH_RISK ?>.</p>
+<?php // One form for all rules; inputs named rules[<rule_id>][field] ?>
 <form method="post" class="card">
     <?= csrf_field() ?>
     <div class="table-responsive">
         <table class="table align-middle mb-0">
             <thead><tr><th>Code</th><th style="min-width:240px">Rule name</th><th style="width:140px">Threshold</th><th style="width:110px">Weight</th><th class="text-center">Active</th><th>Meaning of the threshold</th></tr></thead>
             <tbody>
+            <?php // One row per rule ?>
             <?php foreach ($rules as $r): $id = (int) $r['rule_id']; ?>
                 <tr>
                     <td class="fw-bold"><?= e($r['rule_code']) ?></td>
@@ -75,6 +81,7 @@ require APP_ROOT . '/includes/header.php';
             </tbody>
         </table>
     </div>
+    <?php // "Save and re-score" also sends rescore=1 ?>
     <div class="card-footer bg-white d-flex gap-2">
         <button class="btn btn-pg"><i class="bi bi-save me-1"></i>Save rules</button>
         <button class="btn btn-outline-success" name="rescore" value="1"><i class="bi bi-arrow-repeat me-1"></i>Save and re-score all statements</button>

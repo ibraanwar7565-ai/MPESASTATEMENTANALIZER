@@ -14,9 +14,9 @@
 
 // ---------- Application ----------
 // Application constants
-define('APP_NAME', 'PesaGuard');
-define('APP_TAGLINE', 'M-Pesa Statement Analyzer & Fraud Detection System');
-define('APP_ROOT', dirname(__DIR__));
+define('APP_NAME', 'PesaGuard');        // page titles, sidebar, footer
+define('APP_TAGLINE', 'M-Pesa Statement Analyzer & Fraud Detection System');   // login, register and footer
+define('APP_ROOT', dirname(__DIR__));   // project folder (parent of config/)
 
 // Statements use EAT (UTC+3)
 date_default_timezone_set('Africa/Nairobi');
@@ -24,12 +24,12 @@ date_default_timezone_set('Africa/Nairobi');
 // ---------- Database (MySQL on Laragon) ----------
 // Laragon defaults: root, no password
 define('DB_DRIVER', getenv('PG_DB_DRIVER') ?: 'mysql');   // 'sqlite' is used only by the automated tests
-define('DB_HOST', '127.0.0.1');
-define('DB_PORT', '3306');
-define('DB_NAME', 'mpesa_analyzer_db');
-define('DB_USER', 'root');
-define('DB_PASS', '');                                     // Laragon default: empty password
-define('SQLITE_PATH', getenv('PG_SQLITE_PATH') ?: APP_ROOT . '/storage/test.sqlite');
+define('DB_HOST', '127.0.0.1');                           // MySQL server (local)
+define('DB_PORT', '3306');                                // MySQL default port
+define('DB_NAME', 'mpesa_analyzer_db');                   // created by database/mpesa_analyzer_db.sql
+define('DB_USER', 'root');                                // MySQL user
+define('DB_PASS', '');                                    // Laragon default: empty password
+define('SQLITE_PATH', getenv('PG_SQLITE_PATH') ?: APP_ROOT . '/storage/test.sqlite');   // test database file
 
 // ---------- Uploads ----------
 // Temporary upload folder (files are deleted after parsing)
@@ -55,9 +55,9 @@ function qpdf_bin(): string
            'C:/laragon/bin/qpdf/qpdf.exe',
            'C:/Program Files/qpdf/bin/qpdf.exe']
         : [QPDF_PATH, '/usr/bin/qpdf', '/usr/local/bin/qpdf', '/opt/homebrew/bin/qpdf'];
-    foreach ($candidates as $c) {
+    foreach ($candidates as $c) {   // first path that exists
         if ($c !== '' && is_file($c)) {
-            return PHP_OS_FAMILY === 'Windows' ? str_replace('/', '\\', $c) : $c;
+            return PHP_OS_FAMILY === 'Windows' ? str_replace('/', '\\', $c) : $c;   // backslashes on Windows
         }
     }
     return 'qpdf';                                         // fall back to PATH
@@ -67,14 +67,15 @@ function qpdf_bin(): string
 // Minimal error page, used when a request fails before the layout loads
 function pg_fail(string $title, string $message): never
 {
-    if (PHP_SAPI === 'cli') {
+    if (PHP_SAPI === 'cli') {   // command line (tests): print to stderr
         fwrite(STDERR, "$title: $message\n");
         exit(1);
     }
-    if (!headers_sent()) {
+    if (!headers_sent()) {   // 503 Service Unavailable
         http_response_code(503);
         header('Content-Type: text/html; charset=utf-8');
     }
+    // escape before printing
     $t = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
     $m = htmlspecialchars($message, ENT_QUOTES, 'UTF-8');
     echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
@@ -101,43 +102,38 @@ set_exception_handler(function (Throwable $ex): void {
 // and reused by every query on the page.
 function db(): PDO
 {
-    static $pdo = null;
-    if ($pdo === null) {
+    static $pdo = null;    // kept between calls
+    if ($pdo === null) {   // connect on first use only
         $options = [
-            // throw on SQL errors
-            // rows as associative arrays
-            // native (server-side) prepared statements
-            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES   => false,
-            PDO::ATTR_TIMEOUT            => 5,           // never wait forever for the database
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,   // throw on SQL errors
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,         // rows as associative arrays
+            PDO::ATTR_EMULATE_PREPARES   => false,                    // native (server-side) prepared statements
+            PDO::ATTR_TIMEOUT            => 5,                        // never wait forever for the database
         ];
         // SQLite is only used by tests/run_tests.php
         if (DB_DRIVER === 'sqlite') {
             $pdo = new PDO('sqlite:' . SQLITE_PATH, null, null, $options);
             $pdo->exec('PRAGMA foreign_keys = ON');
         } else {
+            // MySQL DSN: host, port, database, utf8mb4 character set
             $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME . ';charset=utf8mb4';
-            $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
+            $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);   // opens the connection
         }
     }
-    return $pdo;
+    return $pdo;   // same connection for every call
 }
 
 // ---------- Secure session ----------
-// Session cookie hardening:
-//  httponly - not readable from JavaScript (XSS)
-//  samesite Strict - not sent on cross-site requests (CSRF)
-//  secure - HTTPS only when the site is served over HTTPS
+// Session cookie hardening (not for command-line runs)
 if (PHP_SAPI !== 'cli' && session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params([
-        'lifetime' => 0,
-        'path'     => '/',
-        'httponly' => true,
-        'samesite' => 'Strict',
-        'secure'   => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+        'lifetime' => 0,          // ends when the browser closes
+        'path'     => '/',        // whole site
+        'httponly' => true,       // not readable from JavaScript (XSS)
+        'samesite' => 'Strict',   // not sent on cross-site requests (CSRF)
+        'secure'   => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',   // HTTPS only when served over HTTPS
     ]);
-    session_name('PESAGUARD');
+    session_name('PESAGUARD');   // cookie name
     session_start();
 }
 

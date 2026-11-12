@@ -6,13 +6,14 @@
 require_once __DIR__ . '/../config/config.php';
 // Admins only
 $admin = require_admin();
-$errors = [];
+$errors = [];   // validation messages for the form
 // Prefill from the flagged-transactions page
 $form = ['identifier' => strtolower(trim($_GET['identifier'] ?? '')), 'entity_type' => 'Phone', 'reason' => ''];
-$editId = (int) ($_GET['edit'] ?? 0);
+$editId = (int) ($_GET['edit'] ?? 0);   // ?edit=<id> loads an entry into the form
 
+// Form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    verify_csrf();
+    verify_csrf();   // reject forms without a valid token
     $action = $_POST['action'] ?? '';
     // Delete entry
     if ($action === 'delete') {
@@ -21,16 +22,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         flash('success', 'Entry removed from the blacklist.');
         redirect('admin/blacklist.php');
     }
+    // Read the form: identifier without spaces, type limited to Phone / Till / Paybill
     $form = [
         'identifier'  => strtolower(preg_replace('/\s+/', '', $_POST['identifier'] ?? '')),
         'entity_type' => in_array($_POST['entity_type'] ?? '', ['Phone', 'Till', 'Paybill'], true) ? $_POST['entity_type'] : 'Phone',
         'reason'      => trim($_POST['reason'] ?? ''),
     ];
-    $editId = (int) ($_POST['blacklist_id'] ?? 0);
+    $editId = (int) ($_POST['blacklist_id'] ?? 0);   // 0 = new entry
     // Format as on statements, e.g. 0790***066
     if (!preg_match('/^[0-9*x+]{5,20}$/', $form['identifier'])) {
         $errors[] = 'Enter the number as it appears on statements, e.g. 0790***066 or 888880.';
     }
+    // A reason is required
     if (mb_strlen($form['reason']) < 5) {
         $errors[] = 'Give a short reason (at least 5 characters).';
     }
@@ -43,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 log_activity((int) $admin['user_id'], "Updated blacklist entry {$form['identifier']}");
                 flash('success', 'Blacklist entry updated.');
             } else {
-                // Insert
+                // Insert, recording which admin added it
                 db()->prepare('INSERT INTO blacklist (identifier, entity_type, reason, added_by, created_at) VALUES (?, ?, ?, ?, ?)')
                     ->execute([$form['identifier'], $form['entity_type'], mb_substr($form['reason'], 0, 255), $admin['user_id'], now()]);
                 log_activity((int) $admin['user_id'], "Blacklisted {$form['identifier']}");
@@ -56,19 +59,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 } elseif ($editId) {
+    // Edit link: load the entry into the form
     $st = db()->prepare('SELECT * FROM blacklist WHERE blacklist_id = ?');
     $st->execute([$editId]);
     $form = $st->fetch() ?: $form;
 }
 
+// All entries, newest first, with the admin who added each
 $rows = db()->query('SELECT b.*, u.full_name FROM blacklist b LEFT JOIN users u ON u.user_id = b.added_by ORDER BY b.blacklist_id DESC')->fetchAll();
 
-$pageTitle = 'Blacklist';
-$active = 'admin';
+$pageTitle = 'Blacklist';   // browser tab and top bar title
+$active = 'admin';          // highlights the Admin menu
 require APP_ROOT . '/includes/header.php';
 ?>
 <h1 class="h3 page-title">Blacklist</h1>
 <p class="page-sub">Numbers, tills and paybills reported for fraud. Any payment to them triggers rule R5.</p>
+<?php // Left: add / edit form. Right: blacklist table ?>
 <div class="row g-3">
     <div class="col-lg-4">
         <div class="card">
@@ -77,6 +83,7 @@ require APP_ROOT . '/includes/header.php';
                 <?php if ($errors): ?><div class="alert alert-danger py-2 small"><?= implode('<br>', array_map('e', $errors)) ?></div><?php endif; ?>
                 <form method="post">
                     <?= csrf_field() ?>
+                    <?php // 0 = add, otherwise the entry being edited ?>
                     <input type="hidden" name="blacklist_id" value="<?= $editId ?>">
                     <div class="mb-2"><label class="form-label small" for="identifier">Number / till / paybill</label>
                         <input class="form-control" id="identifier" name="identifier" value="<?= e($form['identifier']) ?>" placeholder="0790***066" required></div>
@@ -98,6 +105,7 @@ require APP_ROOT . '/includes/header.php';
                 <table class="table table-hover mb-0">
                     <thead><tr><th>Identifier</th><th>Type</th><th>Reason</th><th>Added by</th><th>Date</th><th class="text-end">Actions</th></tr></thead>
                     <tbody>
+                    <?php // One row per entry: edit link and remove button ?>
                     <?php foreach ($rows as $b): ?>
                         <tr>
                             <td class="font-monospace fw-semibold"><?= e($b['identifier']) ?></td>
@@ -114,6 +122,7 @@ require APP_ROOT . '/includes/header.php';
                             </td>
                         </tr>
                     <?php endforeach; ?>
+                    <?php // Empty blacklist ?>
                     <?php if (!$rows): ?><tr><td colspan="6" class="text-center text-muted py-4">The blacklist is empty.</td></tr><?php endif; ?>
                     </tbody>
                 </table>

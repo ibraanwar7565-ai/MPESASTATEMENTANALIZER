@@ -9,11 +9,11 @@ $admin = require_admin();
 
 // Re-run categorisation and fraud scoring on every stored statement
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['rescore'])) {
-    verify_csrf();
-    $r = (new StatementImporter(db()))->rescore();
+    verify_csrf();                                   // reject forms without a valid token
+    $r = (new StatementImporter(db()))->rescore();   // returns statement and flagged counts
     log_activity((int) $admin['user_id'], "Re-scored all statements ({$r['statements']} statements, {$r['flagged']} flagged)");
     flash('success', "Re-scored {$r['statements']} statement(s) with the current rules: {$r['flagged']} transaction(s) flagged.");
-    redirect('admin/index.php');
+    redirect('admin/index.php');   // Post/Redirect/Get
 }
 
 // Single-value query helper
@@ -35,13 +35,15 @@ $ruleStats = db()->query("SELECT r.rule_code, r.rule_name, r.weight, r.is_active
                                  SUM(CASE WHEN f.review_status = 'Dismissed' THEN 1 ELSE 0 END) AS dismissed
                           FROM fraud_rules r LEFT JOIN flagged_transactions f ON f.rule_id = r.rule_id
                           GROUP BY r.rule_id, r.rule_code, r.rule_name, r.weight, r.is_active ORDER BY r.rule_code")->fetchAll();
+// Last 8 activity log entries
 $recent = db()->query('SELECT l.*, u.full_name FROM activity_log l LEFT JOIN users u ON u.user_id = l.user_id
                        ORDER BY l.log_id DESC LIMIT 8')->fetchAll();
 
-$pageTitle = 'Administration';
-$active = 'admin';
+$pageTitle = 'Administration';   // browser tab and top bar title
+$active = 'admin';               // highlights the Admin menu
 require APP_ROOT . '/includes/header.php';
 ?>
+<?php // Heading and re-score button (confirm box first) ?>
 <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
     <div>
         <h1 class="h3 page-title">Administration</h1>
@@ -53,6 +55,7 @@ require APP_ROOT . '/includes/header.php';
     </form>
 </div>
 
+<?php // KPI cards, each linking to its page ?>
 <div class="row g-3 mb-3">
     <?php foreach ($stats as [$label, $value, $icon, $href]): ?>
     <div class="col-6 col-md-4 col-xl-2">
@@ -66,6 +69,7 @@ require APP_ROOT . '/includes/header.php';
     <?php endforeach; ?>
 </div>
 
+<?php // Rule performance (left) and recent activity (right) ?>
 <div class="row g-3">
     <div class="col-lg-7">
         <div class="card h-100">
@@ -74,6 +78,7 @@ require APP_ROOT . '/includes/header.php';
                 <table class="table table-sm mb-0">
                     <thead><tr><th>Code</th><th>Rule</th><th class="text-center">Weight</th><th class="text-center">Fired</th><th class="text-center">Confirmed</th><th class="text-center">Dismissed</th><th class="text-center">Precision</th></tr></thead>
                     <tbody>
+                    <?php // Precision = confirmed / (confirmed + dismissed) ?>
                     <?php foreach ($ruleStats as $r):
                         $reviewed = (int) $r['confirmed'] + (int) $r['dismissed']; ?>
                         <tr class="<?= $r['is_active'] ? '' : 'text-muted' ?>">

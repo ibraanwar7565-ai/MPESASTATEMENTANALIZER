@@ -14,10 +14,12 @@ $add = function (string $group, string $name, bool $ok, string $detail) use (&$c
     $checks[] = compact('group', 'name', 'ok', 'detail');
 };
 
-$t0 = microtime(true);
+$t0 = microtime(true);   // start time for the response times below
 try {
+    // Database: connection, tables, rules
     $version = db()->query(DB_DRIVER === 'sqlite' ? 'SELECT sqlite_version()' : 'SELECT VERSION()')->fetchColumn();
     $add('Database', 'Connection', true, (DB_DRIVER === 'sqlite' ? 'SQLite ' : 'MySQL ') . $version . ' answered in ' . round((microtime(true) - $t0) * 1000) . ' ms');
+    // Row count per table; a failing query means the table is missing
     $expected = ['users', 'statements', 'transactions', 'categories', 'fraud_rules', 'flagged_transactions', 'blacklist', 'activity_log'];
     $counts = [];
     $missing = [];
@@ -29,12 +31,13 @@ try {
         }
     }
     $add('Database', 'Tables (8)', !$missing, $missing ? 'Missing: ' . implode(', ', $missing) : implode(' · ', $counts));
-    $rules = (int) db()->query('SELECT COUNT(*) FROM fraud_rules WHERE is_active = 1')->fetchColumn();
+    $rules = (int) db()->query('SELECT COUNT(*) FROM fraud_rules WHERE is_active = 1')->fetchColumn();   // at least one active rule
     $add('Database', 'Fraud rules loaded', $rules > 0, $rules . ' active rule(s)');
 } catch (PDOException $ex) {
     $add('Database', 'Connection', false, 'MySQL is not reachable. Start it in Laragon.');
 }
 
+// Backend: PHP, extensions, libraries, qpdf, upload folder, session
 $add('Backend', 'PHP version', version_compare(PHP_VERSION, '8.1', '>='), 'PHP ' . PHP_VERSION);
 foreach (['pdo_mysql', 'mbstring', 'fileinfo', 'gd', 'dom'] as $ext) {
     $add('Backend', "Extension $ext", extension_loaded($ext), extension_loaded($ext) ? 'Loaded' : 'Not loaded: enable it in Laragon > PHP > Extensions');
@@ -47,26 +50,30 @@ $add('Backend', 'Upload folder writable', is_writable(UPLOAD_PATH), UPLOAD_PATH)
 $add('Backend', 'Session', session_status() === PHP_SESSION_ACTIVE, 'Logged in as ' . $admin['email']);
 
 try {
+    // Pipeline: parse the sample statement and score it with the database rules
     $parser = new StatementParser();
     $rows = $parser->parseCsv(APP_ROOT . '/sample/sample_statement.csv');
     $scored = (new FraudEngine(db()))->score($rows);
     $flagged = count(array_filter($scored, fn($t) => $t['risk_score'] >= MEDIUM_RISK));
+    // the sample statement has 39 transactions
     $add('Pipeline', 'Parser → Fraud engine → Database rules', count($rows) === 39, count($rows) . ' sample transactions read, ' . $flagged . ' flagged in ' . round((microtime(true) - $t0) * 1000) . ' ms');
 } catch (Throwable $ex) {
     $add('Pipeline', 'Parser → Fraud engine → Database rules', false, $ex->getMessage());
 }
 
+// Frontend: CSS and JavaScript files present
 foreach (['assets/vendor/bootstrap/bootstrap.min.css', 'assets/vendor/bootstrap/bootstrap.bundle.min.js', 'assets/vendor/chartjs/chart.umd.js', 'assets/css/style.css', 'assets/js/app.js', 'assets/js/dashboard.js'] as $asset) {
     $add('Frontend', basename($asset), is_file(APP_ROOT . '/' . $asset), $asset);
 }
 
-$failed = count(array_filter($checks, fn($c) => !$c['ok']));
-$pageTitle = 'System status';
-$active = 'admin';
+$failed = count(array_filter($checks, fn($c) => !$c['ok']));   // number of failed checks
+$pageTitle = 'System status';                                  // browser tab and top bar title
+$active = 'admin';                                             // highlights the Admin menu
 require APP_ROOT . '/includes/header.php';
 ?>
 <h1 class="h3 page-title">System status</h1>
 <p class="page-sub">Live check that the frontend, the PHP backend and the MySQL database are communicating.</p>
+<?php // Overall result ?>
 <div class="alert alert-<?= $failed ? 'danger' : 'success' ?>">
     <i class="bi bi-<?= $failed ? 'x-circle' : 'check-circle' ?> me-1"></i>
     <?= $failed ? e($failed . ' check(s) failed. See the rows marked in red.') : 'All ' . count($checks) . ' checks passed. Every part of the system is communicating.' ?>
@@ -76,6 +83,7 @@ require APP_ROOT . '/includes/header.php';
         <table class="table align-middle">
             <thead><tr><th style="width:44px"></th><th>Layer</th><th>Check</th><th>Result</th></tr></thead>
             <tbody>
+            <?php // One row per check; failed checks in red ?>
             <?php foreach ($checks as $c): ?>
                 <tr class="<?= $c['ok'] ? '' : 'row-high' ?>">
                     <td><span class="status-dot <?= $c['ok'] ? 'ok' : 'bad' ?>" title="<?= $c['ok'] ? 'OK' : 'Failed' ?>"></span></td>
@@ -88,7 +96,9 @@ require APP_ROOT . '/includes/header.php';
         </table>
     </div>
 </div>
+<?php // Replaced by the script below when JavaScript runs ?>
 <p class="small text-muted mt-3 mb-0"><span id="js-check"><span class="status-dot bad me-2"></span>Browser scripts not running.</span></p>
 <?php
+// Inline script printed by footer.php
 $pageScript = '<script>document.getElementById("js-check").innerHTML = \'<span class="status-dot ok me-2"></span>Browser scripts running: Bootstrap \' + (window.bootstrap ? "loaded" : "missing") + ".";</script>';
 require APP_ROOT . '/includes/footer.php';

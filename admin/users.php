@@ -6,32 +6,38 @@
 require_once __DIR__ . '/../config/config.php';
 // Admins only
 $admin = require_admin();
-$errors = [];
+$errors = [];   // validation messages for the form
 
+// Form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    verify_csrf();
-    $action = $_POST['action'] ?? '';
-    $id = (int) ($_POST['user_id'] ?? 0);
+    verify_csrf();                          // reject forms without a valid token
+    $action = $_POST['action'] ?? '';       // create | toggle_status | toggle_role | reset_password | delete
+    $id = (int) ($_POST['user_id'] ?? 0);   // target account
 
     // Create account (same rules as registration)
     if ($action === 'create') {
         $name = trim($_POST['full_name'] ?? '');
-        $email = strtolower(trim($_POST['email'] ?? ''));
-        $role = ($_POST['role'] ?? '') === 'Admin' ? 'Admin' : 'User';
+        $email = strtolower(trim($_POST['email'] ?? ''));                // stored in lower case
+        $role = ($_POST['role'] ?? '') === 'Admin' ? 'Admin' : 'User';   // anything else becomes User
         $password = (string) ($_POST['password'] ?? '');
+        // Validation
         if (mb_strlen($name) < 3) { $errors[] = 'Enter the full name.'; }
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) { $errors[] = 'Enter a valid e-mail address.'; }
+        // at least 8 characters with letters and digits
         if (strlen($password) < 8 || !preg_match('/[A-Za-z]/', $password) || !preg_match('/\d/', $password)) {
             $errors[] = 'The password must have at least 8 characters, including letters and numbers.';
         }
         if (!$errors) {
+            // E-mail must not be registered already
             $st = db()->prepare('SELECT COUNT(*) FROM users WHERE email = ?');
             $st->execute([$email]);
             if ($st->fetchColumn()) { $errors[] = 'That e-mail address is already registered.'; }
         }
         if (!$errors) {
+            // Save: bcrypt password hash, account active immediately
             db()->prepare("INSERT INTO users (full_name, email, phone, password_hash, role, status, created_at) VALUES (?, ?, ?, ?, ?, 'Active', ?)")
                 ->execute([$name, $email, trim($_POST['phone'] ?? ''), password_hash($password, PASSWORD_BCRYPT), $role, now()]);
+            // Activity log, message, reload (Post/Redirect/Get)
             log_activity((int) $admin['user_id'], "Created user $email ($role)");
             flash('success', "User $email created.");
             redirect('admin/users.php');
@@ -54,14 +60,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect('admin/users.php');
     } elseif ($action === 'reset_password') {
         // Temporary password, shown once
-        $temp = 'Pg' . random_int(100000, 999999) . 'x';
+        $temp = 'Pg' . random_int(100000, 999999) . 'x';   // e.g. Pg482913x
+        // only the hash is stored
         db()->prepare('UPDATE users SET password_hash = ? WHERE user_id = ?')->execute([password_hash($temp, PASSWORD_BCRYPT), $id]);
         log_activity((int) $admin['user_id'], "Reset password of user #$id");
         flash('info', "Temporary password: $temp. Give it to the user and ask them to change it in My Profile.");
         redirect('admin/users.php');
     } elseif ($action === 'delete') {
-        // Delete user (statements cascade)
+        // Delete user
+        // keep blacklist entries this user added
         db()->prepare('UPDATE blacklist SET added_by = NULL WHERE added_by = ?')->execute([$id]);
+        // ON DELETE CASCADE removes their statements, transactions and flags
         db()->prepare('DELETE FROM users WHERE user_id = ?')->execute([$id]);
         log_activity((int) $admin['user_id'], "Deleted user #$id and all their data");
         flash('success', 'User and all their statements were deleted.');
@@ -70,23 +79,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // User list with search
-$search = trim($_GET['q'] ?? '');
+$search = trim($_GET['q'] ?? '');   // ?q= from the search box
+// Users with their number of uploaded statements
 $st = db()->prepare("SELECT u.*, (SELECT COUNT(*) FROM statements s WHERE s.user_id = u.user_id) AS statements
                      FROM users u WHERE u.full_name LIKE ? OR u.email LIKE ? ORDER BY u.user_id");
-$st->execute(["%$search%", "%$search%"]);
+$st->execute(["%$search%", "%$search%"]);   // search term bound as a parameter
 $users = $st->fetchAll();
 
-$pageTitle = 'Manage users';
-$active = 'admin';
+$pageTitle = 'Manage users';   // browser tab and top bar title
+$active = 'admin';             // highlights the Admin menu
 require APP_ROOT . '/includes/header.php';
 ?>
+<?php // Heading and "Add user" button ?>
 <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
     <div><h1 class="h3 page-title">Users</h1><p class="page-sub">Create, activate, deactivate and delete user accounts.</p></div>
     <button class="btn btn-pg" data-bs-toggle="collapse" data-bs-target="#newUser"><i class="bi bi-person-plus me-1"></i>Add user</button>
 </div>
+<?php // Validation errors ?>
 <?php if ($errors): ?>
     <div class="alert alert-danger"><ul class="mb-0 ps-3"><?php foreach ($errors as $er): ?><li><?= e($er) ?></li><?php endforeach; ?></ul></div>
 <?php endif; ?>
+<?php // New user form, kept open when there are errors ?>
 <div class="collapse <?= $errors ? 'show' : '' ?> mb-3" id="newUser">
     <div class="card card-body">
         <form method="post" class="row g-2 align-items-end">
@@ -101,6 +114,7 @@ require APP_ROOT . '/includes/header.php';
     </div>
 </div>
 
+<?php // Search box and user table ?>
 <div class="card">
     <div class="card-header bg-white">
         <form method="get" class="d-flex gap-2" style="max-width:420px">
@@ -112,6 +126,7 @@ require APP_ROOT . '/includes/header.php';
         <table class="table table-hover mb-0">
             <thead><tr><th>#</th><th>Name</th><th>E-mail</th><th>Phone</th><th>Role</th><th>Status</th><th class="text-center">Statements</th><th>Joined</th><th class="text-end">Actions</th></tr></thead>
             <tbody>
+            <?php // No action buttons on the logged-in admin's own row ?>
             <?php foreach ($users as $u): $self = (int) $u['user_id'] === (int) $admin['user_id']; ?>
                 <tr>
                     <td><?= (int) $u['user_id'] ?></td>
@@ -124,11 +139,13 @@ require APP_ROOT . '/includes/header.php';
                     <td class="small text-nowrap"><?= e(date('d M Y', strtotime($u['created_at']))) ?></td>
                     <td class="text-end text-nowrap">
                         <?php if (!$self): ?>
+                        <?php // Status, role and password buttons; the clicked button's value is the action ?>
                         <form method="post" class="d-inline"><?= csrf_field() ?><input type="hidden" name="user_id" value="<?= (int) $u['user_id'] ?>">
                             <button name="action" value="toggle_status" class="btn btn-sm btn-outline-secondary" title="<?= $u['status'] === 'Active' ? 'Deactivate' : 'Activate' ?>"><i class="bi bi-<?= $u['status'] === 'Active' ? 'pause-circle' : 'play-circle' ?>"></i></button>
                             <button name="action" value="toggle_role" class="btn btn-sm btn-outline-secondary" title="Make <?= $u['role'] === 'Admin' ? 'user' : 'administrator' ?>"><i class="bi bi-person-gear"></i></button>
                             <button name="action" value="reset_password" class="btn btn-sm btn-outline-secondary" title="Reset password"><i class="bi bi-key"></i></button>
                         </form>
+                        <?php // Delete, after a confirm box (app.js) ?>
                         <form method="post" class="d-inline" data-confirm="Delete this user and ALL their statements? This cannot be undone.">
                             <?= csrf_field() ?><input type="hidden" name="user_id" value="<?= (int) $u['user_id'] ?>">
                             <button name="action" value="delete" class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></button>
