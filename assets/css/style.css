@@ -1,210 +1,677 @@
-/* style.css: the whole look of PesaGuard (theme v3).
-   Forest ink + leaf green, one lime spark on dark surfaces.
-   Display: Bricolage Grotesque. Text: Figtree. Both bundled, so the system works offline.
+/* =====================================================================================
+   style.css: the whole look of PesaGuard.
+   Bootstrap 5 gives the basic layout and components; this file gives PesaGuard its own
+   colours, fonts and shapes on top of it.
 
-   Sections: fonts and colours (:root) - app shell (sidebar, top bar) - dashboard summary -
-   flagged alert cards - components (buttons, forms, cards, tables, badges) - login page - print.
-   To change a colour everywhere, change its value once in :root below. */
-@font-face { font-family: "Bricolage Grotesque"; src: url("../fonts/bricolage-grotesque-latin-wght-normal.woff2") format("woff2"); font-weight: 200 800; font-display: swap; }
-@font-face { font-family: "Figtree"; src: url("../fonts/figtree-latin-wght-normal.woff2") format("woff2"); font-weight: 300 900; font-display: swap; }
+   HOW TO CHANGE A COLOUR
+   ----------------------
+   1. Find the part of the page in the list below.
+   2. Go to the :root block (section 2) and change the hex value of that variable, e.g.
+          --leaf: #0e8a47;   ->   --leaf: #1565c0;
+      Every place that uses var(--leaf) changes at once.
+   3. Save, then press Ctrl + F5 in the browser so it loads the new file.
+   A hex colour is # followed by red, green and blue in 2 digits each: #ff0000 = red.
+   VS Code shows a small coloured square next to each hex value; click it to pick a colour.
 
-:root {
-    --ink: #0c2a1d;
-    --ink-2: #123828;
-    --leaf: #0e8a47;
-    --leaf-dark: #0a6b37;
-    --leaf-soft: #e3f3e9;
-    --spark: #b8f04a;
-    --mist: #eef3ef;
-    --line: #dfe7e2;
-    --text: #13241b;
-    --muted: #5a6b61;
-    --red: #d23b2e;
-    --red-soft: #fbe6e3;
-    --amber: #db9200;
-    --amber-soft: #fbf0d3;
-    --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
-    --r-sm: 8px; --r-md: 12px; --r-lg: 20px;
-    --bs-body-font-family: "Figtree", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
-    --bs-link-color-rgb: 14,138,71;
-    --bs-link-hover-color-rgb: 10,107,55;
-    /* aliases used by older markup */
-    --pg-green: var(--leaf); --pg-green-dark: var(--leaf-dark); --pg-green-soft: var(--leaf-soft); --pg-line: var(--line); --pg-muted: var(--muted); --pg-radius: var(--r-md);
+   Which variable colours what:
+     Main buttons, links, "money in" bars ............ --leaf   (hover: --leaf-dark)
+     Sidebar, dashboard summary panel, login page .... --ink
+     Highlighted menu item ........................... --ink-2 and --spark (lime bar and icon)
+     Logo square, lime accents ....................... --spark
+     Page background ................................. --mist
+     Cards and boxes ................................. --surface (white)
+     Normal text / grey text ......................... --text / --muted
+     Borders around cards and tables ................. --line
+     High risk, delete buttons, error messages ....... --red, --red-dark, --red-soft
+     Medium risk, warning messages ................... --amber, --amber-soft
+     Low risk, success messages ...................... --leaf, --leaf-soft
+     "Money out" amounts in tables ................... --money-out
+     "Money out" part of the dashboard bar ........... --money-out-bar
+     Highlighted High / Medium rows in tables ........ --row-high / --row-medium
+     Sidebar text, labels and icons .................. --side-text, --side-label, --side-icon
+     Dashboard charts ................................ --leaf, --ink, --amber, --red, --chart-1 to --chart-10
+                                                       (assets/js/dashboard.js reads them from here)
+
+   Colours that are NOT in this file:
+     - the PDF reports: the <style> block in reports/export.php (Dompdf cannot read this file)
+     - the "Database not available" error page: pg_fail() in config/config.php
+
+   Sections:
+     1. Fonts                 5. Dashboard summary panel and fraud panel
+     2. Colours and sizes     6. Flagged transactions (alert cards)
+     3. Whole page            7. Shared components: buttons, forms, cards, tables, badges, messages
+     4. Sidebar and top bar   8. Login, register and installer pages
+                              9. Printing
+   ===================================================================================== */
+
+
+/* =====================================================================================
+   1. FONTS
+   Both fonts are stored in assets/fonts, so the system looks the same without internet.
+   Bricolage Grotesque = headings and big numbers. Figtree = all normal text.
+   ===================================================================================== */
+@font-face {
+    font-family: "Bricolage Grotesque";
+    src: url("../fonts/bricolage-grotesque-latin-wght-normal.woff2") format("woff2");
+    font-weight: 200 800;
+    font-display: swap;
+}
+@font-face {
+    font-family: "Figtree";
+    src: url("../fonts/figtree-latin-wght-normal.woff2") format("woff2");
+    font-weight: 300 900;
+    font-display: swap;
 }
 
-body { background: var(--mist); color: var(--text); min-height: 100vh; font-size: .95rem; -webkit-font-smoothing: antialiased; }
+
+/* =====================================================================================
+   2. COLOURS AND SIZES (CSS variables)
+   A variable is written --name: value; and used as var(--name).
+   Change a value here and it changes everywhere it is used.
+   ===================================================================================== */
+:root {
+    /* ---- Brand colours: change these to re-colour the whole system ---- */
+    --ink: #0c2a1d;            /* dark forest green: sidebar, dashboard summary panel, login background, active tab */
+    --ink-2: #123828;          /* a little lighter: highlighted menu item, icon squares on the login page */
+    --leaf: #0e8a47;           /* main green: buttons, links, focus outline, Low risk, "money in" chart bars */
+    --leaf-dark: #0a6b37;      /* darker green: button hover, "money in" amounts, green badge text */
+    --leaf-soft: #e3f3e9;      /* very light green: green badges, success messages, the role tag */
+    --spark: #b8f04a;          /* lime accent: logo square, active menu bar and icon, "money in" part of the dashboard bar */
+
+    /* ---- Page, cards and text ---- */
+    --mist: #eef3ef;           /* page background (light grey-green) */
+    --surface: #ffffff;        /* cards, boxes and the user button in the top bar (white) */
+    --on-dark: #ffffff;        /* text on dark green backgrounds (white) */
+    --line: #dfe7e2;           /* thin borders around cards and tables */
+    --text: #13241b;           /* normal text (almost black, slightly green) */
+    --muted: #5a6b61;          /* grey text: labels, table headings, subtitles */
+    --input-border: #cfdad3;   /* border of text boxes and drop-downs */
+
+    /* ---- Risk and status ---- */
+    --red: #d23b2e;            /* High risk, Confirm / delete buttons, alert count on the dashboard */
+    --red-dark: #b22f24;       /* red buttons when the mouse is over them */
+    --red-soft: #fbe6e3;       /* light red: red badges and error messages */
+    --amber: #db9200;          /* Medium risk */
+    --amber-soft: #fbf0d3;     /* light amber: amber badges and warning messages */
+    --money-out: #b02a1f;      /* "money out" amounts in tables (red) */
+    --money-out-bar: #ff8a73;  /* "money out" part of the bar on the dashboard summary (coral, easy to read on dark green) */
+
+    /* ---- Sidebar (dark green menu on the left) ---- */
+    --side-text: #c3d8cb;      /* menu link text */
+    --side-icon: #86a996;      /* menu icons */
+    --side-label: #6c8f7b;     /* the "Menu" and "Admin" labels, and the footer line */
+    --side-subtitle: #7fa18e;  /* "Fraud detection" under the PesaGuard name */
+
+    /* ---- Dashboard summary and fraud panel ---- */
+    --on-dark-muted: #9dbcab;      /* small labels inside the dark summary panel */
+    --watch-alert-bg: #fff7f5;     /* fraud panel background when alerts are waiting */
+    --watch-alert-border: #f3c9c3; /* its border */
+
+    /* ---- Flagged transactions page ---- */
+    --high-card-border: #f0bdb6;   /* border of a High-risk alert card */
+    --ring-track: #e8eeea;         /* empty part of the score ring */
+
+    /* ---- Tables ---- */
+    --row-line: #ecf1ed;       /* line between table rows */
+    --row-hover: #f6f9f7;      /* row background when the mouse is over it */
+    --row-high: #fdf1ef;       /* background of a High-risk row (light red) */
+    --row-medium: #fdf8e9;     /* background of a Medium-risk row (light amber) */
+
+    /* ---- Badges (small coloured labels) ---- */
+    --badge-red-text: #a3271c;
+    --badge-amber-text: #7d5300;
+    --badge-grey-bg: #e6ebe8;
+    --badge-grey-text: #46544c;
+
+    /* ---- Messages at the top of a page ---- */
+    --success-text: #0a5a2f;   /* green message text, e.g. "Category updated." */
+    --danger-text: #8f2218;    /* red message text, e.g. "Wrong statement password" */
+    --warning-text: #6f4a00;   /* amber message text */
+    --info-bg: #e4eef9;        /* blue message background, e.g. "You have logged out." */
+    --info-text: #1d4a80;      /* blue message text */
+
+    /* ---- Other borders and backgrounds ---- */
+    --chip-hover-border: #c3d1c9;  /* user button border when the mouse is over it */
+    --outline-btn-border: #a9d3ba; /* border of green outline buttons, e.g. "Load sample CSV" */
+    --drop-border: #a9c9b6;        /* dashed border of the upload box */
+    --drop-bg: #f8fbf9;            /* background of the upload box */
+    --login-text: #cfe2d6;         /* the three feature lines on the login page */
+    --partner-text: #33443a;       /* text in the white M-PESA badge on the login page */
+
+    /* ---- Dashboard charts (read by assets/js/dashboard.js) ---- */
+    --chart-grid: #e6ece8;     /* grid lines behind the bars */
+    --chart-1: #0e8a47;        /* colours of the categories in the spending doughnut, in order */
+    --chart-2: #0c2a1d;
+    --chart-3: #db9200;
+    --chart-4: #3f7fd6;
+    --chart-5: #b8d94a;
+    --chart-6: #d23b2e;
+    --chart-7: #7a5cc7;
+    --chart-8: #2aa6a1;
+    --chart-9: #8a968f;
+    --chart-10: #c26a2a;
+
+    /* ---- Fonts and corner roundness ---- */
+    --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;   /* headings */
+    --r-sm: 8px;               /* small rounded corners */
+    --r-md: 12px;              /* cards and messages */
+    --r-lg: 20px;              /* big panels and the upload box */
+
+    /* ---- Settings that Bootstrap reads ---- */
+    --bs-body-font-family: "Figtree", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+    /* Link colours. Bootstrap needs them as "red, green, blue" numbers:
+       14,138,71 is --leaf and 10,107,55 is --leaf-dark. If you change those two greens, change these too. */
+    --bs-link-color-rgb: 14,138,71;
+    --bs-link-hover-color-rgb: 10,107,55;
+
+    /* Old names still used by a few pages; they simply point to the colours above */
+    --pg-green: var(--leaf);
+    --pg-green-dark: var(--leaf-dark);
+    --pg-green-soft: var(--leaf-soft);
+    --pg-line: var(--line);
+    --pg-muted: var(--muted);
+    --pg-radius: var(--r-md);
+}
+
+
+/* =====================================================================================
+   3. WHOLE PAGE
+   ===================================================================================== */
+body {
+    background: var(--mist);                    /* page background */
+    color: var(--text);                         /* normal text colour */
+    min-height: 100vh;                          /* at least the full height of the window */
+    font-size: .95rem;                          /* base text size (1rem = 16px) */
+    -webkit-font-smoothing: antialiased;        /* smoother text on some screens */
+}
+/* All headings use the display font */
 h1, h2, h3, .h1, .h2, .h3, .h4, .h5 { font-family: var(--display); letter-spacing: -.02em; }
-:focus-visible { outline: 3px solid rgba(14,138,71,.45); outline-offset: 2px; }
+
+/* Green outline around whatever has keyboard focus (Tab key), so keyboard users can see where they are */
+:focus-visible { outline: 3px solid color-mix(in srgb, var(--leaf) 45%, transparent); outline-offset: 2px; }
+
+/* Users who ask their computer for less motion get no animations */
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 
-/* ---------- Shell ---------- */
-.pg-shell { display: flex; min-height: 100vh; }
-.pg-side { width: 248px; flex: 0 0 248px; background: var(--ink) !important; color: #c3d8cb; display: flex !important; flex-direction: column; }
-@media (min-width: 992px) { .pg-side { position: sticky; top: 0; height: 100vh; } }
-.pg-side.offcanvas-lg { --bs-offcanvas-bg: var(--ink); --bs-offcanvas-width: 248px; }
-.side-brand { display: flex; align-items: center; gap: .7rem; padding: 1.3rem 1.25rem 1.1rem; color: #fff; text-decoration: none; font-family: var(--display); font-weight: 700; font-size: 1.3rem; line-height: 1; letter-spacing: -.02em; }
-.side-brand small { display: block; font-family: var(--bs-body-font-family); font-weight: 500; font-size: .74rem; color: #7fa18e; margin-top: .3rem; letter-spacing: 0; }
-.brand-mark { width: 38px; height: 38px; border-radius: 11px; background: var(--spark); display: grid; place-items: center; font-size: 1.25rem; color: var(--ink); }
-.side-scroll { flex: 1 1 auto; overflow-y: auto; padding: .2rem .75rem 1rem; }
-.side-label { font-size: .76rem; font-weight: 600; color: #6c8f7b; padding: 1rem .7rem .4rem; }
-.side-nav { list-style: none; margin: 0; padding: 0; }
-.side-link { position: relative; display: flex; align-items: center; gap: .75rem; padding: .6rem .7rem; margin-bottom: 2px; border-radius: 10px; color: #c3d8cb; text-decoration: none; font-weight: 500; }
-.side-link .bi { font-size: 1.05rem; width: 1.2rem; text-align: center; color: #86a996; }
-.side-link:hover { background: rgba(255,255,255,.06); color: #fff; }
-.side-link.active { background: var(--ink-2); color: #fff; font-weight: 600; }
-.side-link.active::before { content: ""; position: absolute; left: -.75rem; top: 20%; bottom: 20%; width: 4px; border-radius: 0 4px 4px 0; background: var(--spark); }
-.side-link.active .bi { color: var(--spark); }
-.side-foot { padding: .9rem 1.25rem; font-size: .75rem; color: #6c8f7b; }
-
-.pg-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
-.pg-top { position: sticky; top: 0; z-index: 1020; display: flex; align-items: center; height: 62px; padding: 0 2rem; background: rgba(238,243,239,.86); backdrop-filter: blur(10px); border-bottom: 1px solid transparent; }
-.top-title { font-weight: 600; color: var(--muted); font-size: .9rem; }
-.user-chip { display: inline-flex; align-items: center; gap: .55rem; padding: .28rem .7rem .28rem .28rem; border-radius: 999px; background: #fff; border: 1px solid var(--line); color: var(--text); text-decoration: none; font-weight: 600; font-size: .88rem; }
-.user-chip:hover { border-color: #c3d1c9; color: var(--text); }
-.avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--ink); color: var(--spark); display: grid; place-items: center; font-family: var(--display); font-weight: 700; font-size: .9rem; }
-.role-tag { font-size: .7rem; font-weight: 700; padding: .12rem .5rem; border-radius: 999px; background: var(--leaf-soft); color: var(--leaf-dark); }
-.pg-content { flex: 1 0 auto; padding: 1.2rem 2rem 2.5rem; width: 100%; max-width: 1480px; }
-.pg-footer { padding: 1rem 2rem; font-size: .8rem; color: var(--muted); }
-@media (max-width: 575.98px) { .pg-content { padding: 1rem 1rem 2rem; } .pg-top, .pg-footer { padding-left: 1rem; padding-right: 1rem; } .user-name, .role-tag { display: none; } }
-
+/* Big page heading (e.g. "Dashboard") and the grey line under it */
 .page-title { font-size: clamp(1.7rem, 1.2rem + 1.4vw, 2.3rem); font-weight: 700; margin-bottom: .25rem; line-height: 1.1; }
 .page-sub { color: var(--muted); margin-bottom: 1.4rem; max-width: 70ch; }
 
-/* ---------- Dashboard: statement summary ---------- */
-.hero { position: relative; overflow: hidden; background: var(--ink); color: #fff; border-radius: var(--r-lg); padding: 1.7rem 1.9rem 1.5rem; display: flex; flex-direction: column; }
-.hero::after { content: ""; position: absolute; right: -90px; top: -90px; width: 300px; height: 300px; border-radius: 50%; border: 46px solid rgba(184,240,74,.07); pointer-events: none; }
-.hero-hello { color: #9dbcab; margin: 0 0 1.1rem; font-weight: 500; }
+
+/* =====================================================================================
+   4. SIDEBAR AND TOP BAR (includes/header.php)
+   ===================================================================================== */
+
+/* The whole screen: sidebar on the left, main area on the right */
+.pg-shell { display: flex; min-height: 100vh; }
+
+/* ---- Sidebar ---- */
+.pg-side {
+    width: 248px;
+    flex: 0 0 248px;
+    background: var(--ink) !important;          /* SIDEBAR COLOUR */
+    color: var(--side-text);
+    display: flex !important;
+    flex-direction: column;
+}
+/* On big screens the sidebar stays in place while the page scrolls */
+@media (min-width: 992px) { .pg-side { position: sticky; top: 0; height: 100vh; } }
+/* On phones the sidebar slides in from the left (Bootstrap "offcanvas"); same colour */
+.pg-side.offcanvas-lg { --bs-offcanvas-bg: var(--ink); --bs-offcanvas-width: 248px; }
+
+/* Logo and name at the top of the sidebar */
+.side-brand {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    padding: 1.3rem 1.25rem 1.1rem;
+    color: var(--on-dark);                      /* "PesaGuard" in white */
+    text-decoration: none;
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 1.3rem;
+    line-height: 1;
+    letter-spacing: -.02em;
+}
+.side-brand small {                             /* "Fraud detection" under the name */
+    display: block;
+    font-family: var(--bs-body-font-family);
+    font-weight: 500;
+    font-size: .74rem;
+    color: var(--side-subtitle);
+    margin-top: .3rem;
+    letter-spacing: 0;
+}
+.brand-mark {                                   /* the lime square with the shield icon */
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    background: var(--spark);
+    display: grid;
+    place-items: center;
+    font-size: 1.25rem;
+    color: var(--ink);
+}
+
+/* Menu area (scrolls if there are many links) */
+.side-scroll { flex: 1 1 auto; overflow-y: auto; padding: .2rem .75rem 1rem; }
+.side-label { font-size: .76rem; font-weight: 600; color: var(--side-label); padding: 1rem .7rem .4rem; }  /* "Menu", "Admin" */
+.side-nav { list-style: none; margin: 0; padding: 0; }
+
+/* One menu link */
+.side-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .6rem .7rem;
+    margin-bottom: 2px;
+    border-radius: 10px;
+    color: var(--side-text);
+    text-decoration: none;
+    font-weight: 500;
+}
+.side-link .bi { font-size: 1.05rem; width: 1.2rem; text-align: center; color: var(--side-icon); }   /* its icon */
+.side-link:hover { background: rgba(255, 255, 255, .06); color: var(--on-dark); }                     /* mouse over: faint white */
+/* The menu item of the page you are on */
+.side-link.active { background: var(--ink-2); color: var(--on-dark); font-weight: 600; }
+.side-link.active::before {                     /* the lime bar on its left edge */
+    content: "";
+    position: absolute;
+    left: -.75rem;
+    top: 20%;
+    bottom: 20%;
+    width: 4px;
+    border-radius: 0 4px 4px 0;
+    background: var(--spark);
+}
+.side-link.active .bi { color: var(--spark); }  /* its icon turns lime */
+.side-foot { padding: .9rem 1.25rem; font-size: .75rem; color: var(--side-label); }   /* "MKU BBIT Project" line */
+
+/* ---- Main area (everything right of the sidebar) ---- */
+.pg-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+
+/* Top bar: stays at the top when you scroll; slightly see-through */
+.pg-top {
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+    display: flex;
+    align-items: center;
+    height: 62px;
+    padding: 0 2rem;
+    background: color-mix(in srgb, var(--mist) 86%, transparent);   /* page colour, 86% solid */
+    backdrop-filter: blur(10px);                                    /* blurs what scrolls under it */
+    border-bottom: 1px solid transparent;
+}
+.top-title { font-weight: 600; color: var(--muted); font-size: .9rem; }   /* page name on the left */
+
+/* The round user button on the right (name, role, menu) */
+.user-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .55rem;
+    padding: .28rem .7rem .28rem .28rem;
+    border-radius: 999px;                       /* 999px = fully rounded ends */
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: .88rem;
+}
+.user-chip:hover { border-color: var(--chip-hover-border); color: var(--text); }
+.avatar {                                       /* circle with the first letter of the name */
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: var(--spark);
+    display: grid;
+    place-items: center;
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: .9rem;
+}
+.role-tag {                                     /* the "User" / "Admin" tag */
+    font-size: .7rem;
+    font-weight: 700;
+    padding: .12rem .5rem;
+    border-radius: 999px;
+    background: var(--leaf-soft);
+    color: var(--leaf-dark);
+}
+
+/* Page content and footer */
+.pg-content { flex: 1 0 auto; padding: 1.2rem 2rem 2.5rem; width: 100%; max-width: 1480px; }
+.pg-footer { padding: 1rem 2rem; font-size: .8rem; color: var(--muted); }
+
+/* Phones (screens up to 575px wide): less padding, hide the name and role in the top bar */
+@media (max-width: 575.98px) {
+    .pg-content { padding: 1rem 1rem 2rem; }
+    .pg-top, .pg-footer { padding-left: 1rem; padding-right: 1rem; }
+    .user-name, .role-tag { display: none; }
+}
+
+
+/* =====================================================================================
+   5. DASHBOARD: SUMMARY PANEL AND FRAUD PANEL (dashboard.php)
+   ===================================================================================== */
+
+/* ---- The dark summary panel ("Net movement") ---- */
+.hero {
+    position: relative;
+    overflow: hidden;
+    background: var(--ink);                     /* SUMMARY PANEL COLOUR */
+    color: var(--on-dark);
+    border-radius: var(--r-lg);
+    padding: 1.7rem 1.9rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+}
+.hero::after {                                  /* the faint lime ring in the top-right corner (decoration) */
+    content: "";
+    position: absolute;
+    right: -90px;
+    top: -90px;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    border: 46px solid color-mix(in srgb, var(--spark) 7%, transparent);
+    pointer-events: none;
+}
+.hero-hello { color: var(--on-dark-muted); margin: 0 0 1.1rem; font-weight: 500; }   /* "Habari, Brian..." */
 .hero-net { display: flex; flex-direction: column; margin-bottom: 1.2rem; }
-.hero-net-label { font-size: .85rem; color: #9dbcab; font-weight: 600; }
-.hero-net-value { font-family: var(--display); font-weight: 700; font-size: clamp(2.3rem, 1.3rem + 3.4vw, 4rem); line-height: 1; letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
+.hero-net-label { font-size: .85rem; color: var(--on-dark-muted); font-weight: 600; } /* "Net movement" */
+.hero-net-value {                               /* the big amount */
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(2.3rem, 1.3rem + 3.4vw, 4rem);   /* grows with the screen, between 2.3rem and 4rem */
+    line-height: 1;
+    letter-spacing: -.035em;
+    font-variant-numeric: tabular-nums;         /* all digits the same width */
+}
+
+/* Money in / money out bar */
 .flow { display: flex; gap: 4px; height: 14px; margin-bottom: 1.2rem; }
 .flow span { display: block; height: 100%; border-radius: 999px; min-width: 6px; }
-.flow-in { background: var(--spark); }
-.flow-out { background: #ff8a73; }
-.hero-figures { display: flex; flex-wrap: wrap; gap: .9rem 1.8rem; margin-top: auto; font-size: .82rem; color: #9dbcab; font-weight: 500; }
-.hero-figures strong { display: block; color: #fff; font-size: 1.08rem; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: .1rem; }
-.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: .4rem; }
-.dot-in { background: var(--spark); } .dot-out { background: #ff8a73; }
+.flow-in { background: var(--spark); }          /* money in part */
+.flow-out { background: var(--money-out-bar); } /* money out part */
 
-.watch { background: #fff; border-radius: var(--r-lg); padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; border: 1px solid var(--line); }
-.watch-alert { background: #fff7f5; border-color: #f3c9c3; }
+/* The row of small totals at the bottom of the panel */
+.hero-figures { display: flex; flex-wrap: wrap; gap: .9rem 1.8rem; margin-top: auto; font-size: .82rem; color: var(--on-dark-muted); font-weight: 500; }
+.hero-figures strong { display: block; color: var(--on-dark); font-size: 1.08rem; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: .1rem; }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: .4rem; }   /* coloured dots before "Money in/out" */
+.dot-in { background: var(--spark); }
+.dot-out { background: var(--money-out-bar); }
+
+/* ---- The fraud panel ("alerts need your review") ---- */
+.watch {
+    background: var(--surface);
+    border-radius: var(--r-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    border: 1px solid var(--line);
+}
+.watch-alert { background: var(--watch-alert-bg); border-color: var(--watch-alert-border); }   /* when alerts are waiting: light red */
 .watch-head { display: flex; align-items: center; gap: 1rem; }
-.watch-count { font-family: var(--display); font-weight: 800; font-size: 4rem; line-height: .9; letter-spacing: -.04em; color: var(--leaf); }
-.watch-alert .watch-count { color: var(--red); }
+.watch-count {                                  /* the big number of alerts */
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: 4rem;
+    line-height: .9;
+    letter-spacing: -.04em;
+    color: var(--leaf);                         /* green when there are no alerts */
+}
+.watch-alert .watch-count { color: var(--red); }   /* red when alerts are waiting */
 .watch-title { font-family: var(--display); font-weight: 700; font-size: 1.15rem; line-height: 1.2; }
 .watch-sub { font-size: .8rem; color: var(--muted); margin-top: .2rem; }
+
+/* Low / Medium / High bar and its legend */
 .riskbar { display: flex; gap: 3px; height: 10px; }
 .riskbar span { border-radius: 999px; min-width: 4px; }
-.rb-low { background: var(--leaf); } .rb-med { background: var(--amber); } .rb-high { background: var(--red); }
+.rb-low { background: var(--leaf); }            /* Low risk colour */
+.rb-med { background: var(--amber); }           /* Medium risk colour */
+.rb-high { background: var(--red); }            /* High risk colour */
 .risk-legend { display: flex; flex-wrap: wrap; gap: .3rem 1rem; font-size: .82rem; color: var(--muted); font-weight: 600; }
 .risk-legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: .35rem; }
-.btn-alert { background: var(--red); border-color: var(--red); color: #fff; }
-.btn-alert:hover, .btn-alert:focus { background: #b22f24; border-color: #b22f24; color: #fff; }
 
-/* ---------- Flagged: alert cards ---------- */
+/* Red "Review alerts" button */
+.btn-alert { background: var(--red); border-color: var(--red); color: var(--on-dark); }
+.btn-alert:hover, .btn-alert:focus { background: var(--red-dark); border-color: var(--red-dark); color: var(--on-dark); }
+
+
+/* =====================================================================================
+   6. FLAGGED TRANSACTIONS: ALERT CARDS (flagged.php)
+   ===================================================================================== */
 .alert-card { border: 1px solid var(--line); box-shadow: none; }
-.alert-card.is-high { border-color: #f0bdb6; }
-.score-ring { --score: 0; --ring: var(--amber); flex: 0 0 64px; width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--ring) calc(var(--score) * 1%), #e8eeea 0); }
-.is-high .score-ring { --ring: var(--red); }
-.score-ring span { width: 50px; height: 50px; border-radius: 50%; background: #fff; display: grid; place-items: center; font-size: .62rem; color: var(--muted); line-height: 1; text-align: center; }
+.alert-card.is-high { border-color: var(--high-card-border); }   /* High-risk cards get a light red border */
+
+/* The score ring: a circle filled in proportion to the score.
+   conic-gradient paints --ring for score% of the circle and --ring-track for the rest. */
+.score-ring {
+    --score: 0;                                 /* set per card by flagged.php, e.g. style="--score: 40" */
+    --ring: var(--amber);                       /* Medium = amber ring */
+    flex: 0 0 64px;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: conic-gradient(var(--ring) calc(var(--score) * 1%), var(--ring-track) 0);
+}
+.is-high .score-ring { --ring: var(--red); }    /* High = red ring */
+.score-ring span {                              /* the white middle with the number */
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--surface);
+    display: grid;
+    place-items: center;
+    font-size: .62rem;
+    color: var(--muted);
+    line-height: 1;
+    text-align: center;
+}
 .score-ring strong { display: block; font-family: var(--display); font-size: 1.15rem; color: var(--text); }
-.alert-title { font-weight: 700; font-size: 1.02rem; line-height: 1.3; }
-.alert-amount { font-family: var(--display); font-size: 1.2rem; }
+
+.alert-title { font-weight: 700; font-size: 1.02rem; line-height: 1.3; }   /* transaction details */
+.alert-amount { font-family: var(--display); font-size: 1.2rem; }        /* the amount */
+
+/* "Why it was flagged" box */
 .why { background: var(--mist); border-radius: var(--r-md); padding: .8rem 1rem; font-size: .88rem; }
 .why-label { font-weight: 700; margin-bottom: .3rem; }
-.why ul { padding-left: 1.1rem; } .why li { margin-bottom: .15rem; }
+.why ul { padding-left: 1.1rem; }
+.why li { margin-bottom: .15rem; }
 
-/* ---------- Components ---------- */
-.btn { border-radius: 10px; font-weight: 600; padding: .5rem 1rem; }
-.btn-sm { border-radius: 8px; padding: .3rem .7rem; }
-.btn-pg { background: var(--leaf); border-color: var(--leaf); color: #fff; }
-.btn-pg:hover, .btn-pg:focus, .btn-pg:active { background: var(--leaf-dark) !important; border-color: var(--leaf-dark) !important; color: #fff !important; }
-.btn-pg:disabled { background: var(--leaf); border-color: var(--leaf); color: #fff; opacity: .7; }
-.btn-outline-success { --bs-btn-color: var(--leaf-dark); --bs-btn-border-color: #a9d3ba; --bs-btn-hover-bg: var(--leaf); --bs-btn-hover-border-color: var(--leaf); --bs-btn-active-bg: var(--leaf-dark); --bs-btn-active-border-color: var(--leaf-dark); }
-.btn-danger { --bs-btn-bg: var(--red); --bs-btn-border-color: var(--red); --bs-btn-hover-bg: #b22f24; --bs-btn-hover-border-color: #b22f24; }
-.text-pg { color: var(--leaf) !important; }
-.bg-pg-soft { background: var(--leaf-soft) !important; }
 
-.form-control, .form-select { border-radius: 10px; border-color: #cfdad3; padding: .5rem .8rem; }
-.form-select { padding-right: 2.3rem; }
+/* =====================================================================================
+   7. SHARED COMPONENTS (used on many pages)
+   Bootstrap classes such as .btn, .card and .table are restyled here.
+   ===================================================================================== */
+
+/* ---- Buttons ---- */
+.btn { border-radius: 10px; font-weight: 600; padding: .5rem 1rem; }     /* every button */
+.btn-sm { border-radius: 8px; padding: .3rem .7rem; }                    /* small buttons */
+
+/* Main green button, e.g. "Upload & Analyse", "Log in" */
+.btn-pg { background: var(--leaf); border-color: var(--leaf); color: var(--on-dark); }
+.btn-pg:hover, .btn-pg:focus, .btn-pg:active { background: var(--leaf-dark) !important; border-color: var(--leaf-dark) !important; color: var(--on-dark) !important; }
+.btn-pg:disabled { background: var(--leaf); border-color: var(--leaf); color: var(--on-dark); opacity: .7; }
+
+/* Green outline button, e.g. "Load sample CSV". Bootstrap reads these --bs-btn-... settings. */
+.btn-outline-success {
+    --bs-btn-color: var(--leaf-dark);
+    --bs-btn-border-color: var(--outline-btn-border);
+    --bs-btn-hover-bg: var(--leaf);
+    --bs-btn-hover-border-color: var(--leaf);
+    --bs-btn-active-bg: var(--leaf-dark);
+    --bs-btn-active-border-color: var(--leaf-dark);
+}
+/* Red button, e.g. "Confirm" on a fraud alert */
+.btn-danger { --bs-btn-bg: var(--red); --bs-btn-border-color: var(--red); --bs-btn-hover-bg: var(--red-dark); --bs-btn-hover-border-color: var(--red-dark); }
+
+/* Helper classes used in the HTML */
+.text-pg { color: var(--leaf) !important; }            /* green text */
+.bg-pg-soft { background: var(--leaf-soft) !important; }   /* light green background */
+
+/* ---- Forms: text boxes, drop-downs, check boxes ---- */
+.form-control, .form-select { border-radius: 10px; border-color: var(--input-border); padding: .5rem .8rem; }
+.form-select { padding-right: 2.3rem; }                /* room for the drop-down arrow */
 .form-select-sm { padding-right: 2rem !important; }
 .form-control-sm, .form-select-sm { padding: .3rem .6rem; border-radius: 8px; }
-.form-control:focus, .form-select:focus, .form-check-input:focus { border-color: var(--leaf); box-shadow: 0 0 0 .2rem rgba(14,138,71,.16); }
-.form-check-input:checked { background-color: var(--leaf); border-color: var(--leaf); }
+/* Box you are typing in: green border and a soft green glow */
+.form-control:focus, .form-select:focus, .form-check-input:focus {
+    border-color: var(--leaf);
+    box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--leaf) 16%, transparent);
+}
+.form-check-input:checked { background-color: var(--leaf); border-color: var(--leaf); }   /* ticked check box / switch */
 .form-label { font-weight: 600; font-size: .88rem; }
 
-.card { border: 1px solid var(--line); border-radius: var(--r-md); background: #fff; box-shadow: none; }
-.card-header { background: transparent; border-bottom: 0; font-family: var(--display); font-weight: 700; font-size: 1.05rem; padding: 1.1rem 1.25rem .3rem; }
+/* ---- Cards (the white boxes) ---- */
+.card { border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); box-shadow: none; }
+.card-header { background: transparent; border-bottom: 0; font-family: var(--display); font-weight: 700; font-size: 1.05rem; padding: 1.1rem 1.25rem .3rem; }   /* card title */
 .card-body { padding: 1.1rem 1.25rem; }
 .card-footer { background: transparent; border-top: 1px solid var(--line); padding: .9rem 1.25rem; }
+/* Keep the rounded corners when a table fills the card */
 .card > .table-responsive:last-child { border-bottom-left-radius: var(--r-md); border-bottom-right-radius: var(--r-md); }
 .card > .table-responsive:first-child { border-top-left-radius: var(--r-md); border-top-right-radius: var(--r-md); }
 
+/* Small number cards with an icon (Admin overview) */
 .kpi .kpi-icon { width: 44px; height: 44px; flex: 0 0 44px; border-radius: 12px; display: grid; place-items: center; font-size: 1.25rem; }
 .kpi .kpi-value { font-family: var(--display); font-size: 1.45rem; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 .kpi .kpi-label { font-size: .82rem; color: var(--muted); font-weight: 600; }
 
+/* ---- Tables ---- */
 .table { --bs-table-bg: transparent; margin-bottom: 0; }
-.table > :not(caption) > * > * { padding: .7rem 1.25rem; border-bottom-color: #ecf1ed; }
-.table-sm > :not(caption) > * > * { padding: .55rem 1.25rem; }
-.table thead th { font-size: .8rem; color: var(--muted); font-weight: 600; white-space: nowrap; border-bottom: 1px solid var(--line); background: transparent; }
+.table > :not(caption) > * > * { padding: .7rem 1.25rem; border-bottom-color: var(--row-line); }   /* every cell */
+.table-sm > :not(caption) > * > * { padding: .55rem 1.25rem; }                                      /* smaller tables */
+.table thead th { font-size: .8rem; color: var(--muted); font-weight: 600; white-space: nowrap; border-bottom: 1px solid var(--line); background: transparent; }   /* column headings */
 .table tbody tr:last-child td { border-bottom: 0; }
-.table tbody tr:hover > * { background-color: #f6f9f7; }
+.table tbody tr:hover > * { background-color: var(--row-hover); }   /* row under the mouse */
 .table td { vertical-align: middle; }
-.amount-in { color: var(--leaf-dark); font-weight: 700; font-variant-numeric: tabular-nums; }
-.amount-out { color: #b02a1f; font-weight: 700; font-variant-numeric: tabular-nums; }
-.row-high > * { background: #fdf1ef !important; }
-.row-medium > * { background: #fdf8e9 !important; }
-.rule-chip { display: inline-block; font-size: .74rem; font-weight: 700; padding: .14rem .55rem; margin: 0 .2rem .2rem 0; border-radius: 6px; background: var(--ink); color: var(--spark); white-space: nowrap; }
 
+.amount-in { color: var(--leaf-dark); font-weight: 700; font-variant-numeric: tabular-nums; }   /* "+65,000.00" in green */
+.amount-out { color: var(--money-out); font-weight: 700; font-variant-numeric: tabular-nums; }  /* "-48,000.00" in red */
+.row-high > * { background: var(--row-high) !important; }       /* High-risk row */
+.row-medium > * { background: var(--row-medium) !important; }   /* Medium-risk row */
+
+/* Rule codes such as "R2" next to an alert: dark chip with lime text */
+.rule-chip {
+    display: inline-block;
+    font-size: .74rem;
+    font-weight: 700;
+    padding: .14rem .55rem;
+    margin: 0 .2rem .2rem 0;
+    border-radius: 6px;
+    background: var(--ink);
+    color: var(--spark);
+    white-space: nowrap;
+}
+
+/* ---- Badges: small labels such as Low / Medium / High, Pending / Confirmed ---- */
 .badge { font-weight: 700; border-radius: 6px; padding: .34em .65em; font-size: .76em; }
-.badge.bg-success { background: var(--leaf-soft) !important; color: var(--leaf-dark); }
-.badge.bg-danger { background: var(--red-soft) !important; color: #a3271c; }
-.badge.bg-warning { background: var(--amber-soft) !important; color: #7d5300 !important; }
-.badge.bg-secondary { background: #e6ebe8 !important; color: #46544c; }
+.badge.bg-success { background: var(--leaf-soft) !important; color: var(--leaf-dark); }                /* Low, Active, Analysed */
+.badge.bg-danger { background: var(--red-soft) !important; color: var(--badge-red-text); }             /* High, Confirmed */
+.badge.bg-warning { background: var(--amber-soft) !important; color: var(--badge-amber-text) !important; }   /* Medium, Pending */
+.badge.bg-secondary { background: var(--badge-grey-bg) !important; color: var(--badge-grey-text); }    /* Dismissed, Inactive */
 
+/* ---- Messages at the top of a page (Bootstrap "alert") ---- */
 .alert { border-radius: var(--r-md); border: 0; font-weight: 500; }
-.alert-success { background: var(--leaf-soft); color: #0a5a2f; }
-.alert-danger { background: var(--red-soft); color: #8f2218; }
-.alert-warning { background: var(--amber-soft); color: #6f4a00; }
-.alert-info { background: #e4eef9; color: #1d4a80; }
+.alert-success { background: var(--leaf-soft); color: var(--success-text); }   /* green: it worked */
+.alert-danger { background: var(--red-soft); color: var(--danger-text); }       /* red: error */
+.alert-warning { background: var(--amber-soft); color: var(--warning-text); }   /* amber: warning */
+.alert-info { background: var(--info-bg); color: var(--info-text); }           /* blue: information */
+
+/* ---- Tabs on the Flagged page (Pending / Confirmed / Dismissed / All) ---- */
 .nav-pills .nav-link { color: var(--muted); font-weight: 600; border-radius: 999px; }
-.nav-pills .nav-link.active { background: var(--ink); color: #fff; }
-.dropdown-menu { border-radius: var(--r-md); border-color: var(--line); box-shadow: 0 14px 34px rgba(12,42,29,.14); padding: .4rem; }
+.nav-pills .nav-link.active { background: var(--ink); color: var(--on-dark); }   /* the open tab */
+
+/* ---- Drop-down menus (e.g. the user menu) ---- */
+.dropdown-menu { border-radius: var(--r-md); border-color: var(--line); box-shadow: 0 14px 34px color-mix(in srgb, var(--ink) 14%, transparent); padding: .4rem; }
 .dropdown-item { border-radius: 8px; padding: .45rem .7rem; }
 .dropdown-item:active { background: var(--leaf); }
-.pagination { --bs-pagination-active-bg: var(--ink); --bs-pagination-active-border-color: var(--ink); --bs-pagination-color: var(--leaf-dark); --bs-pagination-hover-color: var(--leaf-dark); --bs-pagination-border-color: var(--line); }
+
+/* ---- Page numbers under long tables ---- */
+.pagination {
+    --bs-pagination-active-bg: var(--ink);
+    --bs-pagination-active-border-color: var(--ink);
+    --bs-pagination-color: var(--leaf-dark);
+    --bs-pagination-hover-color: var(--leaf-dark);
+    --bs-pagination-border-color: var(--line);
+}
+
+/* ---- Chart area height on the dashboard ---- */
 .chart-box { position: relative; height: 300px; }
 
-.drop-zone { border: 2px dashed #a9c9b6; border-radius: var(--r-lg); padding: 2.2rem 1rem; text-align: center; background: #f8fbf9; }
+/* ---- Upload box (dashed border) on the Upload page ---- */
+.drop-zone { border: 2px dashed var(--drop-border); border-radius: var(--r-lg); padding: 2.2rem 1rem; text-align: center; background: var(--drop-bg); }
 .drop-zone:hover { border-color: var(--leaf); background: var(--leaf-soft); }
-.drop-zone i { font-size: 2.4rem; color: var(--leaf); }
+.drop-zone i { font-size: 2.4rem; color: var(--leaf); }   /* the big PDF icon */
 
+/* ---- Green / red dots on the System Status page ---- */
 .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-.status-dot.ok { background: var(--leaf); box-shadow: 0 0 0 4px var(--leaf-soft); }
-.status-dot.bad { background: var(--red); box-shadow: 0 0 0 4px var(--red-soft); }
+.status-dot.ok { background: var(--leaf); box-shadow: 0 0 0 4px var(--leaf-soft); }   /* check passed */
+.status-dot.bad { background: var(--red); box-shadow: 0 0 0 4px var(--red-soft); }    /* check failed */
 
-/* ---------- Login, register, installer ---------- */
-body.guest { background: var(--ink); }
+
+/* =====================================================================================
+   8. LOGIN, REGISTER AND INSTALLER PAGES (body class "guest")
+   ===================================================================================== */
+body.guest { background: var(--ink); }          /* LOGIN PAGE BACKGROUND */
+
+/* Centres the content on the screen */
 .auth-wrap { min-height: 100vh; display: grid; place-items: center; padding: 1.5rem; position: relative; overflow: hidden; }
-.auth-wrap::before { content: ""; position: absolute; left: -160px; bottom: -160px; width: 520px; height: 520px; border-radius: 50%; border: 80px solid rgba(184,240,74,.06); pointer-events: none; }
-.auth-card { width: 100%; max-width: 440px; border-radius: var(--r-lg); border: 0; position: relative; }
-.auth-brand { color: #fff; text-align: center; margin-bottom: 1.25rem; position: relative; }
+.auth-wrap::before {                            /* faint lime ring in the bottom-left corner (decoration) */
+    content: "";
+    position: absolute;
+    left: -160px;
+    bottom: -160px;
+    width: 520px;
+    height: 520px;
+    border-radius: 50%;
+    border: 80px solid color-mix(in srgb, var(--spark) 6%, transparent);
+    pointer-events: none;
+}
+.auth-card { width: 100%; max-width: 440px; border-radius: var(--r-lg); border: 0; position: relative; }   /* the white form box */
+
+/* PesaGuard name and logo */
+.auth-brand { color: var(--on-dark); text-align: center; margin-bottom: 1.25rem; position: relative; }
 .auth-brand h1 { font-weight: 700; }
-.auth-brand .display-5 { width: 60px; height: 60px; margin: 0 auto .8rem; border-radius: 16px; background: var(--spark); color: var(--ink); display: grid; place-items: center; font-size: 1.8rem; }
-.guest-alert { max-width: 440px; }
+.auth-brand .display-5 {                        /* lime logo square */
+    width: 60px;
+    height: 60px;
+    margin: 0 auto .8rem;
+    border-radius: 16px;
+    background: var(--spark);
+    color: var(--ink);
+    display: grid;
+    place-items: center;
+    font-size: 1.8rem;
+}
+.guest-alert { max-width: 440px; }              /* messages on the login page */
+
+/* Login page layout: information on the left, form on the right */
 .auth-split { position: relative; display: grid; grid-template-columns: 1.15fr 1fr; gap: 4rem; align-items: center; width: 100%; max-width: 1040px; }
-.auth-hero { color: #fff; }
+.auth-hero { color: var(--on-dark); }
 .auth-hero .auth-brand { margin-bottom: 1.6rem; }
-.auth-hero .auth-brand h1 { font-size: clamp(2.4rem, 1.6rem + 2.6vw, 3.6rem); line-height: 1; letter-spacing: -.035em; }
+.auth-hero .auth-brand h1 { font-size: clamp(2.4rem, 1.6rem + 2.6vw, 3.6rem); line-height: 1; letter-spacing: -.035em; }   /* big "PesaGuard" */
 .auth-hero .auth-brand .opacity-75 { font-size: 1.05rem; margin-top: .5rem; }
+
+/* The three feature lines with icons */
 .auth-points { list-style: none; padding: 0; margin: 0 0 2rem; display: grid; gap: .9rem; max-width: 46ch; }
-.auth-points li { display: flex; gap: .85rem; align-items: flex-start; color: #cfe2d6; line-height: 1.4; }
+.auth-points li { display: flex; gap: .85rem; align-items: flex-start; color: var(--login-text); line-height: 1.4; }
 .auth-points .bi { flex: 0 0 34px; height: 34px; border-radius: 10px; background: var(--ink-2); color: var(--spark); display: grid; place-items: center; font-size: 1rem; }
-.auth-partner { display: inline-flex; align-items: center; gap: .8rem; padding: .6rem 1rem; border-radius: 14px; background: #fff; color: #33443a; font-size: .84rem; font-weight: 600; }
-.auth-partner img { height: 36px; width: auto; display: block; }
-.partner-text { font-family: var(--display); font-weight: 800; color: var(--leaf-dark); font-size: 1.1rem; }
+
+/* White "M-PESA" badge (shows assets/img/mpesa-logo.png if that file exists) */
+.auth-partner { display: inline-flex; align-items: center; gap: .8rem; padding: .6rem 1rem; border-radius: 14px; background: var(--surface); color: var(--partner-text); font-size: .84rem; font-weight: 600; }
+.auth-partner img { height: 36px; width: auto; display: block; }   /* logo height */
+.partner-text { font-family: var(--display); font-weight: 800; color: var(--leaf-dark); font-size: 1.1rem; }   /* "M-PESA" text */
 .auth-form .auth-card { margin-left: auto; }
+
+/* Phones and small tablets (up to 860px): one column, feature lines hidden */
 @media (max-width: 860px) {
     .auth-split { grid-template-columns: 1fr; gap: 1.5rem; max-width: 440px; }
     .auth-points { display: none; }
@@ -213,6 +680,10 @@ body.guest { background: var(--ink); }
     .auth-hero .auth-brand { margin-bottom: 1rem; }
 }
 
+
+/* =====================================================================================
+   9. PRINTING (Ctrl + P): hide the menus and print the summary panel in black on white
+   ===================================================================================== */
 @media print {
     .pg-side, .pg-top, .pg-footer, .no-print { display: none !important; }
     body { background: #fff; }

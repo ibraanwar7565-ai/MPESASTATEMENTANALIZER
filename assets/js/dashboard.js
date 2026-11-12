@@ -10,17 +10,32 @@
     var d = window.PG_DASH;
     // Nothing to draw (no data, or Chart.js did not load): stop quietly.
     if (!d || typeof Chart === 'undefined') { return; }
+    // Chart colours come from the CSS variables in assets/css/style.css (section 2),
+    // so changing a colour there also changes the charts. The second value is a fallback.
+    var css = getComputedStyle(document.documentElement);
+    var color = function (name, fallback) { return css.getPropertyValue(name).trim() || fallback; };
+    var C = {
+        leaf: color('--leaf', '#0e8a47'),       // money in, Low risk, daytime hours
+        ink: color('--ink', '#0c2a1d'),         // money out, tooltip background
+        amber: color('--amber', '#db9200'),     // Medium risk
+        red: color('--red', '#d23b2e'),         // High risk, night hours (rule R2)
+        muted: color('--muted', '#5a6b61'),     // axis text and legends
+        grid: color('--chart-grid', '#e6ece8')  // grid lines
+    };
+
     // Shared look for every chart: font, colours and tooltips.
     Chart.defaults.font.family = 'Figtree, "Segoe UI", system-ui, sans-serif';
     Chart.defaults.font.size = 12.5;
     Chart.defaults.plugins.legend.labels.usePointStyle = true;
     Chart.defaults.plugins.legend.labels.pointStyle = 'circle';
-    Chart.defaults.plugins.tooltip.backgroundColor = '#0c2a1d';
+    Chart.defaults.plugins.tooltip.backgroundColor = C.ink;
     Chart.defaults.plugins.tooltip.padding = 10;
     Chart.defaults.plugins.tooltip.cornerRadius = 8;
-    Chart.defaults.color = '#5a6b61';
-    Chart.defaults.borderColor = '#e6ece8';
-    var palette = ['#0e8a47', '#0c2a1d', '#db9200', '#3f7fd6', '#b8d94a', '#d23b2e', '#7a5cc7', '#2aa6a1', '#8a968f', '#c26a2a'];
+    Chart.defaults.color = C.muted;
+    Chart.defaults.borderColor = C.grid;
+    // Category colours for the spending doughnut: --chart-1 to --chart-10 in style.css
+    var defaults = ['#0e8a47', '#0c2a1d', '#db9200', '#3f7fd6', '#b8d94a', '#d23b2e', '#7a5cc7', '#2aa6a1', '#8a968f', '#c26a2a'];
+    var palette = defaults.map(function (hex, i) { return color('--chart-' + (i + 1), hex); });
     // Formats numbers as KES for the axes and tooltips, e.g. 48000 becomes "KES 48,000".
     var kes = function (v) { return 'KES ' + Number(v).toLocaleString(undefined, { maximumFractionDigits: 0 }); };
 
@@ -32,8 +47,8 @@
             data: {
                 labels: d.months,
                 datasets: [
-                    { label: 'Money in', data: d.in, backgroundColor: '#0e8a47', borderRadius: 6, maxBarThickness: 72 },
-                    { label: 'Money out', data: d.out, backgroundColor: '#0c2a1d', borderRadius: 6, maxBarThickness: 72 }
+                    { label: 'Money in', data: d.in, backgroundColor: C.leaf, borderRadius: 6, maxBarThickness: 72 },
+                    { label: 'Money out', data: d.out, backgroundColor: C.ink, borderRadius: 6, maxBarThickness: 72 }
                 ]
             },
             options: {
@@ -65,7 +80,7 @@
     if (el) {
         new Chart(el, {
             type: 'doughnut',
-            data: { labels: ['Low', 'Medium', 'High'], datasets: [{ data: d.risk, backgroundColor: ['#0e8a47', '#db9200', '#d23b2e'], borderWidth: 2 }] },
+            data: { labels: ['Low', 'Medium', 'High'], datasets: [{ data: d.risk, backgroundColor: [C.leaf, C.amber, C.red], borderWidth: 2 }] },
             options: { maintainAspectRatio: false, cutout: '68%', plugins: { legend: { position: 'bottom' } } }
         });
     }
@@ -81,7 +96,7 @@
                 labels: labels,
                 datasets: [{
                     label: 'Outgoing transactions', data: d.hourly, borderRadius: 3,
-                    backgroundColor: labels.map(function (_, i) { return i < 5 ? '#d23b2e' : '#0e8a47'; })
+                    backgroundColor: labels.map(function (_, i) { return i < 5 ? C.red : C.leaf; })
                 }]
             },
             options: {
